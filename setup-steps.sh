@@ -27,8 +27,16 @@ export SUBNETWORK_NAME="projects/[your-project-id]/regions/$REGION/subnetworks/[
 
 gcloud config set project $PROJECT_ID
 
+# ----------------------------------------
+# Enable APIs
+# ----------------------------------------
 gcloud services enable artifactregistry.googleapis.com cloudbuild.googleapis.com --project $PROJECT_ID
+gcloud services enable workstations.googleapis.com --project $PROJECT_ID
 
+# ----------------------------------------
+# Create Custom Container Image
+# ----------------------------------------
+# https://cloud.google.com/workstations/docs/customize-container-images
 gcloud artifacts repositories create default --repository-format=docker \
 --location=us-central1 --project $PROJECT_ID
 
@@ -36,11 +44,11 @@ gcloud builds submit . \
 --tag="$REGION-docker.pkg.dev/$PROJECT_ID/default/my-workstation-vscode" \
 --project $PROJECT_ID
 
-# Create Workstations
-gcloud services enable workstations.googleapis.com --project $PROJECT_ID
-
-# SA and IAM Bindings
+# ----------------------------------------
+# Create SA and IAM Bindings
+# ----------------------------------------
 # https://cloud.google.com/iam/docs/service-accounts-create#gcloud
+
 gcloud iam service-accounts create $SA_NAME \
   --description="$SA_DESCRIPTION" \
   --display-name="$SA_DISPLAY_NAME"
@@ -57,7 +65,9 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member="serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com" \
   --role="roles/logging.logWriter"
 
-# Create Cluster
+# ----------------------------------------
+# Create Workstations Cluster
+# ----------------------------------------
 # https://cloud.google.com/sdk/gcloud/reference/workstations/clusters/create
 
 gcloud workstations clusters create $WORKSTATION_CLUSTER \
@@ -65,9 +75,9 @@ gcloud workstations clusters create $WORKSTATION_CLUSTER \
     --network=$NETWORK_NAME \
     --subnetwork=$SUBNETWORK_NAME
 
-# gcloud workstations clusters create my-private-cluster --region=us-central1 --enable-private-endpoint --network='my-network' --subnetwork='my-subnetwork'
-
-# Create Config
+# ----------------------------------------
+# Create Workstations Config
+# ----------------------------------------
 # https://cloud.google.com/sdk/gcloud/reference/workstations/configs/create
 
 gcloud workstations configs create $WORKSTATION_CONFIG \
@@ -80,9 +90,13 @@ gcloud workstations configs create $WORKSTATION_CONFIG \
     --pd-disk-type="pd-standard" \
     --pd-disk-size=200
 
+# ----------------------------------------
 # Create Workstation
+# ----------------------------------------
 # https://cloud.google.com/sdk/gcloud/reference/workstations/create
 gcloud workstations create vscode-workstation \
     --cluster=$WORKSTATION_CLUSTER \
     --config=$WORKSTATION_CONFIG \
     --region=$REGION
+
+# gcloud workstations clusters create my-private-cluster --region=us-central1 --enable-private-endpoint --network='my-network' --subnetwork='my-subnetwork'
