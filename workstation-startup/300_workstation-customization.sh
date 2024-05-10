@@ -29,23 +29,6 @@ chown -R user:user $VSCODE_PATH
 chmod -R 755 $VSCODE_PATH
 
 # ----------------------------------------
-# VS Code - Workspace recommended extensions
-# ----------------------------------------
-# https://code.visualstudio.com/docs/editor/extension-marketplace#_workspace-recommended-extensions
-# VSCODE_PATH="/home/user/.vscode-server"
-# VSCODE_PATH="/home/user/.vscode"
-# VSCODE_EXTENSIONS_PATH="$VSCODE_PATH/extensions"
-# mkdir -p $VSCODE_EXTENSIONS_PATH
-# cat << EOF > $VSCODE_EXTENSIONS_PATH/extensions.json
-# {
-#   "recommendations": ["GoogleCloudTools.cloudcode"]
-# }
-# EOF
-
-# chown -R user:user $VSCODE_PATH
-# chmod -R 755 $VSCODE_PATH
-
-# ----------------------------------------
 # Oh My zsh
 # ----------------------------------------
 export ZSH=/opt/workstation/oh-my-zsh
