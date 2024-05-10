@@ -17,6 +17,7 @@ FROM us-central1-docker.pkg.dev/cloud-workstations-images/predefined/base:latest
 # ----------------------------------------
 # VS Code Server
 # ----------------------------------------
+ENV VSCODE=/opt/vscode/code
 RUN arch=$(uname -m) && \
 if [ "${arch}" = "x86_64" ]; then \
 arch="x64"; \
@@ -25,12 +26,14 @@ arch="arm64"; \
 elif [ "${arch}" = "armv7l" ]; then \
 arch="armhf"; \
 fi && \
-mkdir -p /vscode-server && \
-curl -o /vscode-server/vscode.tar.gz -L "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64"
-RUN tar -xzf /vscode-server/vscode.tar.gz -C /vscode-server/
-RUN rm /vscode-server/vscode.tar.gz
+mkdir -p /opt/vscode && \
+curl -o /opt/vscode/vscode.tar.gz -L "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64"
+RUN tar -xzf /opt/vscode/vscode.tar.gz -C /opt/vscode/
+RUN rm /opt/vscode/vscode.tar.gz
 
+# ----------------------------------------
 # Terraform to manage various kinds of infrastructure
+# ----------------------------------------
 RUN wget -O- https://apt.releases.hashicorp.com/gpg | \
 gpg --dearmor | \
 sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
@@ -40,20 +43,26 @@ sudo tee /etc/apt/sources.list.d/hashicorp.list
 RUN sudo apt update && sudo apt install -y zsh gnupg software-properties-common terraform
 RUN apt-get clean
 
+# ----------------------------------------
 # Install zsh
+# ----------------------------------------
 ENV ZSH=/opt/workstation/oh-my-zsh
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
   git clone https://github.com/zsh-users/zsh-autosuggestions /opt/workstation/oh-my-zsh/plugins/zsh-autosuggestions && \
   git clone --depth=1 https://github.com/romkatv/powerlevel10k.git /opt/workstation/oh-my-zsh/custom/themes/powerlevel10k
 
+# ----------------------------------------
 # Install k9s
+# ----------------------------------------
 RUN curl -s https://api.github.com/repos/derailed/k9s/releases/latest \
 | grep "browser_download_url.*Linux_amd64.tar.gz" \
 | cut -d : -f 2,3 \
 | tr -d \" \
 | wget -qi - && mkdir -p /opt/workstation/bin && tar -xf k9s_Linux_amd64.tar.gz -C /opt/workstation/bin
 
+# ----------------------------------------
 # Install extensions
+# ----------------------------------------
 # RUN wget -O terraform.vsix $(curl -q https://open-vsx.org/api/hashicorp/terraform/linux-x64 | jq -r '.files.download') \
 #     && unzip terraform.vsix "extension/*" \
 #     && mv extension /opt/code-oss/extensions/terraform
@@ -62,7 +71,14 @@ RUN curl -s https://api.github.com/repos/derailed/k9s/releases/latest \
 #     && unzip vscode-icons.vsix "extension/*" \
 #     && mv extension /opt/code-oss/extensions/vscode-icons
 
+# Gemini Code Assist + Google Cloud Code
+# https://marketplace.visualstudio.com/items?itemName=GoogleCloudTools.cloudcode
+# RUN /opt/vscode/code code tunnel --accept-server-license-terms
+# RUN /opt/vscode/code --install-extension googlecloudtools.cloudcode
+
+# ----------------------------------------
 # Copy workstation customization script
+# ----------------------------------------
 COPY /workstation-startup/300_workstation-customization.sh /etc/workstation-startup.d/300_workstation-customization.sh
 RUN chmod +x /etc/workstation-startup.d/300_workstation-customization.sh
 

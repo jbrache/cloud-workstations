@@ -25,11 +25,12 @@ source /etc/profile.d/go_envs.sh
 
 export HOME=/home/user
 export EDITOR_PORT=80
-export PATH="$PATH:/vscode-server/code"
+export PATH="$PATH:/opt/vscode/code"
+
+source ~/.bashrc
 
 function start_vscode {
-  # runuser user -c -l "cd /opt/code-oss && ./bin/codeoss-cloudworkstations --port=${EDITOR_PORT} --host=0.0.0.0"
-  runuser user -c -l "cd /vscode-server/ && /vscode-server/code serve-web --host 0.0.0.0 --port=${EDITOR_PORT} --without-connection-token"
+  runuser user -c -l "cd /opt/vscode/ && ./code serve-web --host 0.0.0.0 --port=${EDITOR_PORT} --without-connection-token"
 }
 
 function kill_container {

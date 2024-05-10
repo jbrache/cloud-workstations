@@ -14,20 +14,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# CODEOSS_PATH="/home/user/.codeoss-cloudworkstations"
-# SETTINGS_PATH="$CODEOSS_PATH/data/Machine"
+VSCODE_PATH="/home/user/.vscode-server"
+SETTINGS_PATH="$VSCODE_PATH/data/Machine"
 
-# mkdir -p $SETTINGS_PATH
-# cat << EOF > $SETTINGS_PATH/settings.json
+mkdir -p $SETTINGS_PATH
+cat << EOF > $SETTINGS_PATH/settings.json
+{
+    "workbench.colorTheme": "Default Dark+",
+    "terminal.integrated.defaultProfile.linux": "zsh",
+}
+EOF
+
+chown -R user:user $VSCODE_PATH
+chmod -R 755 $VSCODE_PATH
+
+# ----------------------------------------
+# VS Code - Workspace recommended extensions
+# ----------------------------------------
+# https://code.visualstudio.com/docs/editor/extension-marketplace#_workspace-recommended-extensions
+# VSCODE_PATH="/home/user/.vscode-server"
+# VSCODE_PATH="/home/user/.vscode"
+# VSCODE_EXTENSIONS_PATH="$VSCODE_PATH/extensions"
+# mkdir -p $VSCODE_EXTENSIONS_PATH
+# cat << EOF > $VSCODE_EXTENSIONS_PATH/extensions.json
 # {
-#     "workbench.colorTheme": "Default Dark+",
-#     "terminal.integrated.defaultProfile.linux": "zsh"
+#   "recommendations": ["GoogleCloudTools.cloudcode"]
 # }
 # EOF
 
-# chown -R user:user $CODEOSS_PATH
-# chmod -R 755 $CODEOSS_PATH
+# chown -R user:user $VSCODE_PATH
+# chmod -R 755 $VSCODE_PATH
 
+# ----------------------------------------
+# Oh My zsh
+# ----------------------------------------
 export ZSH=/opt/workstation/oh-my-zsh
 
 if [ -f "/home/user/.zshrc" ]; then
