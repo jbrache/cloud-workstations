@@ -1,0 +1,4 @@
+steps:
+- id: build
+  name: docker
+  args: ['build', '.', '-t', 'us-central1-docker.pkg.dev/prj-workstations-eaad9418/workstations-vscode']
