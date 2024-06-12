@@ -52,4 +52,4 @@ credentials.json
 *.code-workspace
 
 # Shell files
-setup-steps.shvars.sh
+*.shvars.sh

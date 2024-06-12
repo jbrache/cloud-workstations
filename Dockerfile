@@ -77,10 +77,22 @@ RUN curl -s https://api.github.com/repos/derailed/k9s/releases/latest \
 # RUN /opt/vscode/code --install-extension googlecloudtools.cloudcode
 
 # ----------------------------------------
-# Copy workstation customization script
+# Copy Workstation Customization script
 # ----------------------------------------
-COPY /workstation-startup/300_workstation-customization.sh /etc/workstation-startup.d/300_workstation-customization.sh
+COPY ./assets/etc/workstation-startup.d/300_workstation-customization.sh /etc/workstation-startup.d/300_workstation-customization.sh
 RUN chmod +x /etc/workstation-startup.d/300_workstation-customization.sh
 
-COPY /workstation-startup/110_start-vscode.sh /etc/workstation-startup.d/110_start-vscode.sh
+COPY ./assets/etc/workstation-startup.d/110_start-vscode.sh /etc/workstation-startup.d/110_start-vscode.sh
 RUN chmod +x /etc/workstation-startup.d/110_start-vscode.sh
+
+# ----------------------------------------
+# Copy User Adding Overrides for Default Auth Behavior
+# ----------------------------------------
+COPY ./assets/etc/workstation-startup.d/010_add-user.sh /etc/workstation-startup.d/010_add-user.sh
+RUN chmod +x /etc/workstation-startup.d/010_add-user.sh
+
+COPY ./assets/etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh /etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh
+RUN chmod +x /etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh
+
+COPY ./assets/etc/profile.d/disable_gcloud_gce_check.sh /etc/profile.d/disable_gcloud_gce_check.sh
+RUN chmod +x /etc/profile.d/disable_gcloud_gce_check.sh
