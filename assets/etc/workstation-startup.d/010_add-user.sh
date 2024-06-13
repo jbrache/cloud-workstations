@@ -27,10 +27,6 @@ useradd -m user -G $groups --shell /bin/bash > /dev/null
 passwd -d user >/dev/null
 echo "%sudo ALL=NOPASSWD: ALL" >> /etc/sudoers
 
-useradd -m jose -G $groups --shell /bin/bash > /dev/null
-passwd -d jose >/dev/null
-echo "%sudo ALL=NOPASSWD: ALL" >> /etc/sudoers
-
 # Relay known environment variables configured at container runtime
 # to the default profile. This ensures that they are available over SSH sessions
 echo "CLOUD_WORKSTATIONS_ENABLE_METADATA_CREDS_CHECK=${CLOUD_WORKSTATIONS_ENABLE_METADATA_CREDS_CHECK}" >> /etc/environment
