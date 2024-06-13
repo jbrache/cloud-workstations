@@ -86,13 +86,19 @@ COPY ./assets/etc/workstation-startup.d/110_start-vscode.sh /etc/workstation-sta
 RUN chmod +x /etc/workstation-startup.d/110_start-vscode.sh
 
 # ----------------------------------------
-# Copy User Adding Overrides for Default Auth Behavior
+# Configure User Adding Overrides for Default Auth Behavior
 # ----------------------------------------
+RUN rm -f /etc/profile.d/disable_gcloud_gce_check.sh && \
+  apt-get update && \
+  apt-get install -y \
+    inotify-tools \
+    && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
+
 COPY ./assets/etc/workstation-startup.d/010_add-user.sh /etc/workstation-startup.d/010_add-user.sh
 RUN chmod +x /etc/workstation-startup.d/010_add-user.sh
 
 COPY ./assets/etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh /etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh
 RUN chmod +x /etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh
 
-COPY ./assets/etc/profile.d/disable_gcloud_gce_check.sh /etc/profile.d/disable_gcloud_gce_check.sh
-RUN chmod +x /etc/profile.d/disable_gcloud_gce_check.sh
