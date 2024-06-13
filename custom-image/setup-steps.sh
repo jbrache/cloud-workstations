@@ -98,5 +98,3 @@ gcloud workstations create vscode-workstation \
     --cluster=$WORKSTATION_CLUSTER \
     --config=$WORKSTATION_CONFIG \
     --region=$REGION
-
-# gcloud workstations clusters create my-private-cluster --region=us-central1 --enable-private-endpoint --network='my-network' --subnetwork='my-subnetwork'
