@@ -6,7 +6,9 @@ passwd -d jose >/dev/null
 # load the user profile which is why the profile.d script didn't get executed
 sudo su - jose # right
 
-# Above works OK with --shell /bin/bash but not with --shell /use/bin/zsh
+# Above works OK with --shell /bin/bash but not with --shell /usr/bin/zsh:
+# useradd -m jose -G $groups --shell /usr/bin/zsh > /dev/null # Doesn't work with this sample
+
 # If using another shell, i.e. zsh would need to adapt the this sample,
 # the startup portions still be OK. Would need to plug something into
 # /etc/zprofile or something if we want to support he and hoc command line useradd scenario
