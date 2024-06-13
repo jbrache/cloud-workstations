@@ -15,43 +15,42 @@
 # limitations under the License.
 #
 
-# adapted from /etc/profile.d/disable_gcloud_gce_check.sh
-# to handle multiple users and non-sudoers
-#
-# the base image's original file is replaced with a simplified
-# version since polling is now handled here
+function configureMetadataCredsCheck {
 
-# get list of root (id=0) and non-root users (100<=id<65534)
-USERS="root $(awk -F ':' '$3 >= 1000 && $3 < 65534 {print $1}' /etc/passwd)"
+  TRIGGER=$1 # timer or /etc/passwd
 
-function disableMetadataCredsCheck {
-  # set gce flag to False
-  echo "disabling gcloud metadata creds check"
+  # get list of root (id=0) and non-root users (100<=id<65534)
+  USERS="root $(awk -F ':' '$3 >= 1000 && $3 < 65534 {print $1}' /etc/passwd)"
+
+  # if service account enabled by env var, delete flag file
+  # otherwise set flag to False to disable service account
   for USER in $USERS; do
-    su - $USER bash -c '
-      mkdir -p $HOME/.config/gcloud 2> /dev/null
-      echo False > $HOME/.config/gcloud/gce 2> /dev/null
+    sudo -u $USER /bin/bash -c '
+      if [ ${CLOUD_WORKSTATIONS_ENABLE_METADATA_CREDS_CHECK:-false} == "true" ]; then
+        echo "gcloud metadata creds check enabled for $(whoami) ('$TRIGGER')"
+        rm -f $HOME/.config/gcloud/gce
+      else
+        echo "gcloud metadata creds check disabled for $(whoami) ('$TRIGGER')"
+        mkdir -p $HOME/.config/gcloud
+        echo False > $HOME/.config/gcloud/gce
+      fi
     '
   done
 }
 
-if [ ${CLOUD_WORKSTATIONS_ENABLE_METADATA_CREDS_CHECK:-false} == "true" ]; then
-  # remove flag in case env has changed since previous start
-  echo "enabling gcloud metadata creds check"
-  for USER in $USERS; do
-    su - $USER bash -c '
-      rm -f $HOME/.config/gcloud/gce 2> /dev/null
-    '
-  done
-else
-  # do this once synchronously before continuing with startup
-  disableMetadataCredsCheck
-  # Continually update since the file expires
-  # do loop in background so startup can continue
-  while true
-  do
-    sleep 5m
-    disableMetadataCredsCheck
-  done &
-fi
+# Continually update since the file expires
+# do loop in background so startup can continue
+while true
+do
+  configureMetadataCredsCheck timer
+  sleep 5m
+done &
+
+# also trigger reconfiguration when /etc/passwd changes - using deletion of lock
+# file as trigger signal - this should apply config e.g. to new users even
+# before first login
+inotifywait -mq /etc/ | grep --line-buffered "DELETE passwd.lock" | while read -r LINE;
+do
+  configureMetadataCredsCheck /etc/passwd
+done &
 
