@@ -4,7 +4,7 @@ passwd -d jose >/dev/null
 # sudo su jose - # wrong
 # The dash should go before the username, otherwise it doesn't
 # load the user profile which is why the profile.d script didn't get executed
-sudo su - jose # right
+sudo su - jose # right (dash before username)
 
 # Above works OK with --shell /bin/bash but not with --shell /usr/bin/zsh:
 # useradd -m jose -G $groups --shell /usr/bin/zsh > /dev/null # Doesn't work with this sample
