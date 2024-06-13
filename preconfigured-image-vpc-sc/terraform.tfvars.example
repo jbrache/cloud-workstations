@@ -1,0 +1,7 @@
+org_id = "123456789"
+billing_account = "123456-123456-123456"
+environment     = "workstations"
+folder_id       = "123456"
+developers_email = ["your_id@example.com"]
+access_policy_admin_email = ["your_id@example.com"]
+developers_name = ["name"]
