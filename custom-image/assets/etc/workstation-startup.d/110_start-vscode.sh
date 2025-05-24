@@ -23,14 +23,25 @@ echo "Starting VS Code"
 
 source /etc/profile.d/go_envs.sh
 
-export HOME=/home/user
 export EDITOR_PORT=80
 export PATH="$PATH:/opt/vscode/code"
+DEFAULT_USER="user"
 
+# Check if the environment variable is set and not empty
+if [ -n "${ACCOUNT}" ]; then
+  # Use the value of the environment variable
+  username=$(echo "$ACCOUNT" | sed 's/[@.]/_/g')
+else
+  # Use the default username
+  username="$DEFAULT_USER"
+  echo "Environment variable 'ACCOUNT' is not set or is empty. Using default username '${username}'."
+fi
+
+export HOME="/home/${username}"
 source ~/.bashrc
 
 function start_vscode {
-  runuser user -c -l "cd /opt/vscode/ && ./code serve-web --host 0.0.0.0 --port=${EDITOR_PORT} --without-connection-token"
+  runuser "${username}" -c -l "cd /opt/vscode/ && ./code serve-web --host 0.0.0.0 --port=${EDITOR_PORT} --without-connection-token"
 }
 
 function kill_container {
