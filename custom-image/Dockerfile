@@ -99,6 +99,8 @@ RUN rm -f /etc/profile.d/disable_gcloud_gce_check.sh && \
 COPY ./assets/etc/workstation-startup.d/010_add-user.sh /etc/workstation-startup.d/010_add-user.sh
 RUN chmod +x /etc/workstation-startup.d/010_add-user.sh
 
+COPY ./assets/etc/workstation-startup.d/011_add-os-login-user.sh /etc/workstation-startup.d/011_add-os-login-user.sh
+RUN chmod +x /etc/workstation-startup.d/011_add-os-login-user.sh
+
 COPY ./assets/etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh /etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh
 RUN chmod +x /etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh
-
