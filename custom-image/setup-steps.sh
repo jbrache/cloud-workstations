@@ -24,6 +24,7 @@ export SA_DESCRIPTION="Email address of the service account that will be used on
 export SA_DISPLAY_NAME="cloud-workstations-sa"
 export NETWORK_NAME="projects/[your-project-id]/global/networks/[your-network]"
 export SUBNETWORK_NAME="projects/[your-project-id]/regions/$REGION/subnetworks/[your-subnetwork]"
+export ACCOUNT="your_id@example.com"
 
 gcloud config set project $PROJECT_ID
 
@@ -37,6 +38,7 @@ gcloud services enable workstations.googleapis.com --project $PROJECT_ID
 # Create Custom Container Image
 # ----------------------------------------
 # https://cloud.google.com/workstations/docs/customize-container-images
+
 gcloud artifacts repositories create default --repository-format=docker \
 --location=us-central1 --project $PROJECT_ID
 
@@ -65,6 +67,10 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member="serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com" \
   --role="roles/logging.logWriter"
 
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/monitoring.metricWriter"
+
 # ----------------------------------------
 # Create Workstations Cluster
 # ----------------------------------------
@@ -88,13 +94,16 @@ gcloud workstations configs create $WORKSTATION_CONFIG \
     --service-account="$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com" \
     --pool-size=0 \
     --pd-disk-type="pd-standard" \
-    --pd-disk-size=200
+    --pd-disk-size=200 \
+    --disable-public-ip-addresses
 
 # ----------------------------------------
 # Create Workstation
 # ----------------------------------------
 # https://cloud.google.com/sdk/gcloud/reference/workstations/create
+
 gcloud workstations create vscode-workstation \
     --cluster=$WORKSTATION_CLUSTER \
     --config=$WORKSTATION_CONFIG \
-    --region=$REGION
+    --region=$REGION \
+    --env="ACCOUNT=$ACCOUNT"
