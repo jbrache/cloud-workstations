@@ -71,7 +71,7 @@ create_posix_user_from_os_login() {
       sudo useradd -m -d "$home_dir" -u "$uid" -g "$gid" -G $groups --shell /bin/bash "${username}"
     else
       echo "Creating user '${username}'..."
-      useradd -m "${username}" -G $groups --shell /bin/bash > /dev/null
+      sudo useradd -m "${username}" -G $groups --shell /bin/bash > /dev/null
     fi
 
     # Check if the user was created successfully
@@ -92,7 +92,8 @@ create_posix_user_from_os_login() {
 
 echo "Creating a user based on 'ACCOUNT' environment variable..."
 create_posix_user_from_os_login
-if [ $? -eq 0 ]; then
+result=$?
+if [ $result -eq 0 ]; then
   echo "User created successfully"
 else
   echo "User creation failed"
