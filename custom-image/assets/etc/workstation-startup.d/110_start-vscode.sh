@@ -31,6 +31,15 @@ DEFAULT_USER="user"
 if [ -n "${ACCOUNT}" ]; then
   # Use the value of the environment variable
   username=$(echo "$ACCOUNT" | sed 's/[@.]/_/g')
+  echo "Attempting to use username derived from 'ACCOUNT': '${username}'"
+  # Check if the user already exists
+  if id -u "${username}" &>/dev/null; then
+    echo "User '${username}' exists."
+  else
+    echo "User '${username}' derived from 'ACCOUNT' does not exist."
+    echo "Falling back to default user: '${DEFAULT_USER}'."
+    username="$DEFAULT_USER"
+  fi
 else
   # Use the default username
   username="$DEFAULT_USER"
@@ -38,9 +47,15 @@ else
 fi
 
 export HOME="/home/${username}"
-source ~/.bashrc
+# Attempt to source .bashrc, be cautious if it doesn't exist
+if [ -f "${HOME}/.bashrc" ]; then
+  source "${HOME}/.bashrc"
+else
+  echo "Warning: ${HOME}/.bashrc not found."
+fi
 
 function start_vscode {
+  echo "Starting VS Code as user '${username}' with HOME='${HOME}'"
   runuser "${username}" -c -l "cd /opt/vscode/ && ./code serve-web --host 0.0.0.0 --port=${EDITOR_PORT} --without-connection-token"
 }
 

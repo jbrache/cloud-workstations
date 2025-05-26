@@ -46,7 +46,7 @@ create_posix_user_from_os_login() {
   fi
 
   # Check if the user already exists
-  if id "${username}" &>/dev/null; then
+  if id -u "${username}" &>/dev/null; then
     echo "User '${username}' already exists."
   else
     # Create the user
