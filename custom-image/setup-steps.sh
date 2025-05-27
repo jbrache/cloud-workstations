@@ -25,6 +25,7 @@ export SA_DISPLAY_NAME="cloud-workstations-sa"
 export NETWORK_NAME="projects/[your-project-id]/global/networks/[your-network]"
 export SUBNETWORK_NAME="projects/[your-project-id]/regions/$REGION/subnetworks/[your-subnetwork]"
 export ACCOUNT="your_id@example.com"
+export BASE_IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/default/cloud-workstation-vscode:latest"
 
 gcloud config set project $PROJECT_ID
 
@@ -43,7 +44,8 @@ gcloud artifacts repositories create default --repository-format=docker \
 --location=us-central1 --project $PROJECT_ID
 
 gcloud builds submit . \
---tag="$REGION-docker.pkg.dev/$PROJECT_ID/default/my-workstation-vscode" \
+--tag $BASE_IMAGE \
+--region $REGION \
 --project $PROJECT_ID
 
 # ----------------------------------------
@@ -90,7 +92,7 @@ gcloud workstations configs create $WORKSTATION_CONFIG \
     --cluster=$WORKSTATION_CLUSTER \
     --region=$REGION \
     --machine-type=e2-standard-4 \
-    --container-custom-image="$REGION-docker.pkg.dev/$PROJECT_ID/default/my-workstation-vscode" \
+    --container-custom-image=$BASE_IMAGE \
     --service-account="$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com" \
     --pool-size=0 \
     --pd-disk-type="pd-standard" \
