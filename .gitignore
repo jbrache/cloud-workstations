@@ -28,6 +28,9 @@ Session.vim
 *.tfstate
 *.tfstate.*
 
+# Config Files
+config*.json
+
 # Crash log files
 crash.log
 

@@ -1,0 +1,105 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ============================================
+# REQUIRED VARIABLES
+# ============================================
+
+# Your Google Cloud Project ID
+project_id = "your-gcp-project-id"
+
+# Environment tag (e.g., dev, staging, prod)
+environment = "dev"
+
+# ============================================
+# REGION AND ZONE
+# ============================================
+
+# GCP region for workstation deployment
+region = "us-central1"
+
+# GCP zone within the region
+zone = "us-central1-a"
+
+# ============================================
+# DEVELOPER ACCESS CONFIGURATION
+# ============================================
+
+# List of developer email addresses who will have access to workstations
+# Each email will get a dedicated workstation created
+developers_email = [
+  "developer1@example.com",
+  "developer2@example.com"
+]
+
+# List of developer names (must match the order of developers_email)
+# Used for workstation naming: workstation-<name>
+developers_name = [
+  "developer1",
+  "developer2"
+]
+
+# Instance owners for Vertex AI Workbench (if using)
+instance_owners = [
+  "admin@example.com"
+]
+
+# ============================================
+# NETWORK CONFIGURATION
+# ============================================
+
+# IP range for the workstations subnet
+subnetwork_range = "10.2.0.0/16"
+
+# Private DNS zone for resolving private Google APIs
+dnszone = "private.googleapis.com."
+
+# ============================================
+# COMPUTE CONFIGURATION
+# ============================================
+
+# Machine type for workstation VMs
+# Options: e2-standard-2, e2-standard-4, e2-standard-8, n2-standard-4, etc.
+machine_type = "e2-standard-4"
+
+# Boot disk size in GB (defined in Dockerfile/config, typically 50GB)
+boot_disk_size_gb = "50"
+
+# Boot disk type
+# Options: PD_STANDARD, PD_SSD, PD_BALANCED
+boot_disk_type = "PD_STANDARD"
+
+# Persistent data disk size in GB (typically 200GB for home directory)
+data_disk_size_gb = "200"
+
+# Data disk type
+# Options: PD_STANDARD, PD_SSD, PD_BALANCED, PD_EXTREME
+data_disk_type = "PD_SSD"
+
+# ============================================
+# OPTIONAL CONFIGURATION
+# ============================================
+
+# Enable IP forwarding (typically false for workstations)
+can_ip_forward = "false"
+
+# Install GPU drivers (set to true if using GPU machine types)
+install_gpu_driver = false
+
+# Custom labels for resources (optional)
+labels = {
+  "team"        = "engineering"
+  "cost-center" = "development"
+  "environment" = "dev"
+}
