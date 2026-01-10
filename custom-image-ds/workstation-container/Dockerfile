@@ -94,11 +94,11 @@ RUN sudo apt update && sudo apt install -y bzip2 && \
 # Should be included in base image
 
 # ----------------------------------------
-# Install pipx
+# Install pipx (takes a while)
 # ----------------------------------------
-RUN sudo apt update && sudo apt install -y pipx && \
-    pipx ensurepath && \
-    apt-get clean
+# RUN apt-get update && apt-get install -y --no-install-recommends pipx && \
+#     pipx ensurepath && \
+#     apt-get clean
 
 # ----------------------------------------
 # Install uv
