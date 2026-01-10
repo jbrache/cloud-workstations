@@ -100,6 +100,29 @@ TARGET_HOME="/home/${username}"
 mkdir -p "$TARGET_HOME/.local/bin"
 
 # ----------------------------------------
+# uv
+# ----------------------------------------
+EXPECTED_BIN="$TARGET_HOME/.local/bin/uv"
+
+echo "Checking for uv installation..."
+
+# 1. Condition: Only run if the binary does NOT exist
+if [ ! -f "$EXPECTED_BIN" ]; then
+    echo "uv not found at $EXPECTED_BIN. Starting installation..."
+
+    # 2. Execute the installer with the hijacked HOME variable
+    # We use 'env' to ensure the variable is exported correctly to the subshell
+    if curl -LsSf https://astral.sh/uv/install.sh | HOME="$TARGET_HOME" sh; then
+        echo "Successfully installed uv to $TARGET_HOME"
+    else
+        echo "Error: Installation script failed."
+        exit 1
+    fi
+else
+    echo "uv is already installed at $EXPECTED_BIN. Skipping installation."
+fi
+
+# ----------------------------------------
 # Claude
 # ----------------------------------------
 EXPECTED_BIN="$TARGET_HOME/.local/bin/claude"
