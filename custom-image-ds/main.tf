@@ -276,7 +276,7 @@ resource "google_workstations_workstation_config" "default_config" {
 }
 
 # Workstation creation
-resource "google_workstations_workstation" "workstation_public" {
+resource "google_workstations_workstation" "workstation_user" {
   count                  = length(var.developers_email)
   provider               = google-beta
   workstation_id         = "workstation-${var.developers_name[count.index]}"
@@ -303,6 +303,6 @@ resource "google_workstations_workstation_iam_member" "member" {
   role                   = "roles/workstations.user"
   member                 = "user:${var.developers_email[count.index]}"
 
-  depends_on = [google_workstations_workstation.workstation_public]
+  depends_on = [google_workstations_workstation.workstation_user]
 }
 
