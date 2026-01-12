@@ -178,3 +178,5 @@ if [ -f "$$TARGET_HOME/.local/bin" ]; then
         echo "Tip: Add '$TARGET_HOME/.local/bin' to your PATH to run installed CLI tools from anywhere."
     fi
 fi
+
+chown -R ${username}:${username} /home/${username}

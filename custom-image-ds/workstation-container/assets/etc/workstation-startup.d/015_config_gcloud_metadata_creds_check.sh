@@ -19,8 +19,16 @@ function configureMetadataCredsCheck {
 
   TRIGGER=$1 # timer or /etc/passwd
 
-  # get list of root (id=0) and non-root users (100<=id<65534)
-  USERS="root $(awk -F ':' '$3 >= 1000 && $3 < 65534 {print $1}' /etc/passwd)"
+  # https://docs.cloud.google.com/compute/docs/oslogin/manage-oslogin-in-an-org
+  # get list of root (id=0) and non-root users (1001<=id<60000 OR 65535<=id<2147483647)
+  # 
+  # Adjusted the list for OS Login Ranges
+  # UID: the user ID on the VM for this user. This property must be a value between 1001 and 60000, 
+  # or a value between 65535 and 2147483647. To access a container-optimized OS, the UID must have
+  # a value between 65536 and 214748646. The UID must be unique within your organization.
+  USERS="root $(awk -F ':' '($3 >= 1001 && $3 <= 60000) || ($3 >= 65535 && $3 <= 2147483647) {print $1}' /etc/passwd)"
+  # If you want to verify which users this is pulling before assigning it to the USERS variable, you can run this snippet in your terminal:
+  # awk -F ':' '($3 >= 1001 && $3 <= 60000) || ($3 >= 65535 && $3 <= 2147483647) {printf "User: %-15s UID: %d\n", $1, $3}' /etc/passwd
 
   # if service account enabled by env var, delete flag file
   # otherwise set flag to False to disable service account

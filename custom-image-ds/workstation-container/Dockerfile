@@ -63,13 +63,6 @@ RUN curl -s https://api.github.com/repos/derailed/k9s/releases/latest \
 # ----------------------------------------
 # Install extensions
 # ----------------------------------------
-# RUN wget -O terraform.vsix $(curl -q https://open-vsx.org/api/hashicorp/terraform/linux-x64 | jq -r '.files.download') \
-#     && unzip terraform.vsix "extension/*" \
-#     && mv extension /opt/code-oss/extensions/terraform
-
-# RUN wget -O vscode-icons.vsix $(curl -q https://open-vsx.org/api/vscode-icons-team/vscode-icons | jq -r '.files.download') \
-#     && unzip vscode-icons.vsix "extension/*" \
-#     && mv extension /opt/code-oss/extensions/vscode-icons
 
 # Gemini Code Assist + Google Cloud Code
 # https://marketplace.visualstudio.com/items?itemName=GoogleCloudTools.cloudcode
@@ -131,9 +124,7 @@ RUN chmod +x /etc/workstation-startup.d/110_start-vscode.sh
 # ----------------------------------------
 RUN rm -f /etc/profile.d/disable_gcloud_gce_check.sh && \
   apt-get update && \
-  apt-get install -y \
-    inotify-tools \
-    && \
+  apt-get install -y inotify-tools && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
@@ -145,4 +136,4 @@ RUN chmod +x /etc/workstation-startup.d/011_add-os-login-user.sh
 
 COPY ./assets/etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh /etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh
 RUN chmod +x /etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh
-RUN chmod +x /etc/workstation-startup.d/011_add-os-login-user.sh
+
