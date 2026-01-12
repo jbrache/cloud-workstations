@@ -69,11 +69,23 @@ export ZSH=/opt/workstation/oh-my-zsh
 export ZSH_THEME="powerlevel10k/powerlevel10k"
 export POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=True
 
+# Disable auto-activation (if you prefer manual control)
+VIRTUAL_ENV_DISABLE_PROMPT=true
+
+# Change virtualenv indicator in prompt
+ZSH_THEME_VIRTUALENV_PREFIX="("
+ZSH_THEME_VIRTUALENV_SUFFIX=")"
+
 plugins=(
     git
     zsh-autosuggestions
     kubectl
+    python
+    pip
+    virtualenv
 )
+
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status virtualenv)
 
 alias tf='terraform'
 alias kc='kubectl'
