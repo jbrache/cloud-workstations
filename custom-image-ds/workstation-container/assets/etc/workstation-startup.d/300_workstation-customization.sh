@@ -17,22 +17,22 @@
 DEFAULT_USER="user"
 
 # Check if the environment variable is set and not empty
-if [ -n "${ACCOUNT}" ]; then
+if [ -n "${OSLOGIN_USER}" ]; then
   # Use the value of the environment variable
-  username=$(echo "$ACCOUNT" | sed 's/[@.]/_/g')
-  echo "Attempting to use username derived from 'ACCOUNT': '${username}'"
+  username=$(echo "$OSLOGIN_USER" | sed 's/[@.]/_/g')
+  echo "Attempting to use username derived from 'OSLOGIN_USER': '${username}'"
   # Check if the user already exists
   if id -u "${username}" &>/dev/null; then
     echo "User '${username}' exists."
   else
-    echo "User '${username}' derived from 'ACCOUNT' does not exist."
+    echo "User '${username}' derived from 'OSLOGIN_USER' does not exist."
     echo "Falling back to default user: '${DEFAULT_USER}'."
     username="$DEFAULT_USER"
   fi
 else
   # Use the default username
   username="$DEFAULT_USER"
-  echo "Environment variable 'ACCOUNT' is not set or is empty. Using default username '${username}'."
+  echo "Environment variable 'OSLOGIN_USER' is not set or is empty. Using default username '${username}'."
 fi
 
 # ----------------------------------------
@@ -60,7 +60,6 @@ export ZSH=/opt/workstation/oh-my-zsh
 if [ -f "/home/${username}/.zshrc" ]; then
     echo "ZSH already configured"
 else
-
     cat << 'EOF' > /home/${username}/.zshrc
 export PATH="/opt/workstation/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
@@ -68,6 +67,26 @@ export PATH="$HOME/.local/bin:$PATH"
 export ZSH=/opt/workstation/oh-my-zsh
 export ZSH_THEME="powerlevel10k/powerlevel10k"
 export POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=True
+
+# Claude Code setup
+# Only export these if they are already present in the environment
+if [ -n "$CLAUDE_CODE_USE_VERTEX" ] && \
+   [ -n "$CLOUD_ML_REGION" ] && \
+   [ -n "$ANTHROPIC_VERTEX_PROJECT_ID" ]; then
+    export CLAUDE_CODE_USE_VERTEX=$CLAUDE_CODE_USE_VERTEX
+    export CLOUD_ML_REGION=$CLOUD_ML_REGION
+    export ANTHROPIC_VERTEX_PROJECT_ID=$ANTHROPIC_VERTEX_PROJECT_ID
+fi
+
+# Gemini setup
+# Only export these if they are already present in the environment
+if [ -n "$GOOGLE_GENAI_USE_VERTEXAI" ] && \
+   [ -n "$GOOGLE_CLOUD_LOCATION" ] && \
+   [ -n "$GOOGLE_CLOUD_PROJECT" ]; then
+    export GOOGLE_GENAI_USE_VERTEXAI=$GOOGLE_GENAI_USE_VERTEXAI
+    export GOOGLE_CLOUD_LOCATION=$GOOGLE_CLOUD_LOCATION
+    export GOOGLE_CLOUD_PROJECT=$GOOGLE_CLOUD_PROJECT
+fi
 
 # Disable auto-activation (if you prefer manual control)
 VIRTUAL_ENV_DISABLE_PROMPT=true
@@ -110,6 +129,19 @@ chmod -R 755 /opt
 TARGET_HOME="/home/${username}"
 # Ensure the standard local bin directory exists
 mkdir -p "$TARGET_HOME/.local/bin"
+
+# ----------------------------------------
+# [Skip] Node: Should be installed in base image
+# ----------------------------------------
+
+# ----------------------------------------
+# [Optional] Chrome Remote Desktop & Chrome
+# ----------------------------------------
+# Chrome Remote Desktop
+# wget https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb
+
+# Chrome
+# wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 
 # ----------------------------------------
 # uv
@@ -183,14 +215,28 @@ fi
 # ----------------------------------------
 # Final Path Verification & Permissions
 # ----------------------------------------
-if [ -f "$$TARGET_HOME/.local/bin" ]; then
-    # Make sure the binary is executable
-    chmod -R +x "$$TARGET_HOME/.local/bin"
+# Use -d to check if the directory exists
+if [ -d "/home/${username}/.local/bin" ]; then
+    # Make sure all binaries inside the directory are executable
+    chmod -R +x "/home/${username}/.local/bin"
     
-    # Check if the path is in the current session
-    if [[ ":$PATH:" != *":$TARGET_HOME/.local/bin:"* ]]; then
-        echo "Tip: Add '$TARGET_HOME/.local/bin' to your PATH to run installed CLI tools from anywhere."
+    # Check if the path is in the current session's PATH
+    if [[ ":$PATH:" != *":/home/${username}/.local/bin:"* ]]; then
+        echo "Tip: Add '/home/${username}/.local/bin' to your PATH to run installed CLI tools from anywhere."
     fi
 fi
 
+# Secure SSH directory if it exists
+if [ -d "/home/${username}/.ssh" ]; then
+    chmod 700 /home/${username}/.ssh
+    chmod 600 /home/${username}/.ssh/*
+fi
+
 chown -R ${username}:${username} /home/${username}
+
+# ----------------------------------------
+# MCP Server Registration
+# ----------------------------------------
+# Run the MCP addition as the specific user
+# -i ensures the login environment is simulated so 'uvx' can be found in the PATH
+sudo -i -u "${username}" bash -c "claude mcp add adk-docs --transport stdio -- uvx --from mcpdoc mcpdoc --urls AgentDevelopmentKit:https://google.github.io/adk-docs/llms.txt --transport stdio"

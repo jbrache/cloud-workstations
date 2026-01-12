@@ -34,15 +34,15 @@ create_posix_user_from_os_login() {
   fi
 
   # Check if the environment variable is set and not empty
-  if [ -n "${ACCOUNT}" ]; then
+  if [ -n "${OSLOGIN_USER}" ]; then
     # Use the value of the environment variable
-    username=$(echo "${ACCOUNT}" | sed 's/[@.]/_/g')
-    echo "Environment variable 'ACCOUNT' is set to '${ACCOUNT}'."
+    username=$(echo "${OSLOGIN_USER}" | sed 's/[@.]/_/g')
+    echo "Environment variable 'OSLOGIN_USER' is set to '${OSLOGIN_USER}'."
     echo "Setting the username to '${username}'."
   else
     # Use the default username
     username="${DEFAULT_USER}"
-    echo "Environment variable 'ACCOUNT' is not set or is empty. Using default username '${username}'."
+    echo "Environment variable 'OSLOGIN_USER' is not set or is empty. Using default username '${username}'."
   fi
 
   # Check if the user already exists
@@ -50,7 +50,7 @@ create_posix_user_from_os_login() {
     echo "User '${username}' already exists."
   else
     # Create the user
-    if [ -n "${ACCOUNT}" ]; then
+    if [ -n "${OSLOGIN_USER}" ]; then
       profile_data=$(curl -s "http://metadata.google.internal/computeMetadata/v1/oslogin/users?username=${username}" -H "Metadata-Flavor: Google" | jq -r ".loginProfiles[0].posixAccounts[0]")
       username=$(echo "${profile_data}" | jq -r '.username')
       uid=$(echo "${profile_data}" | jq -r '.uid')
@@ -90,7 +90,7 @@ create_posix_user_from_os_login() {
   exit 0
 }
 
-echo "Creating a user based on 'ACCOUNT' environment variable..."
+echo "Creating a user based on 'OSLOGIN_USER' environment variable..."
 create_posix_user_from_os_login
 result=$?
 if [ $result -eq 0 ]; then

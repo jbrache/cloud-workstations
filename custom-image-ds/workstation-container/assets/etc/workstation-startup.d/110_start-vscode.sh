@@ -28,22 +28,22 @@ export PATH="$PATH:/opt/vscode/code"
 DEFAULT_USER="user"
 
 # Check if the environment variable is set and not empty
-if [ -n "${ACCOUNT}" ]; then
+if [ -n "${OSLOGIN_USER}" ]; then
   # Use the value of the environment variable
-  username=$(echo "$ACCOUNT" | sed 's/[@.]/_/g')
-  echo "Attempting to use username derived from 'ACCOUNT': '${username}'"
+  username=$(echo "$OSLOGIN_USER" | sed 's/[@.]/_/g')
+  echo "Attempting to use username derived from 'OSLOGIN_USER': '${username}'"
   # Check if the user already exists
   if id -u "${username}" &>/dev/null; then
     echo "User '${username}' exists."
   else
-    echo "User '${username}' derived from 'ACCOUNT' does not exist."
+    echo "User '${username}' derived from 'OSLOGIN_USER' does not exist."
     echo "Falling back to default user: '${DEFAULT_USER}'."
     username="$DEFAULT_USER"
   fi
 else
   # Use the default username
   username="$DEFAULT_USER"
-  echo "Environment variable 'ACCOUNT' is not set or is empty. Using default username '${username}'."
+  echo "Environment variable 'OSLOGIN_USER' is not set or is empty. Using default username '${username}'."
 fi
 
 export HOME="/home/${username}"

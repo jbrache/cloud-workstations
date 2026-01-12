@@ -52,13 +52,23 @@ RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master
   git clone --depth=1 https://github.com/romkatv/powerlevel10k.git /opt/workstation/oh-my-zsh/custom/themes/powerlevel10k
 
 # ----------------------------------------
-# Install k9s
+# [Optional] Install k9s
 # ----------------------------------------
-RUN curl -s https://api.github.com/repos/derailed/k9s/releases/latest \
-| grep "browser_download_url.*Linux_amd64.tar.gz" \
-| cut -d : -f 2,3 \
-| tr -d \" \
-| wget -qi - && mkdir -p /opt/workstation/bin && tar -xf k9s_Linux_amd64.tar.gz -C /opt/workstation/bin
+# RUN curl -s https://api.github.com/repos/derailed/k9s/releases/latest \
+# | grep "browser_download_url.*Linux_amd64.tar.gz" \
+# | cut -d : -f 2,3 \
+# | tr -d \" \
+# | wget -qi - && mkdir -p /opt/workstation/bin && tar -xf k9s_Linux_amd64.tar.gz -C /opt/workstation/bin
+
+# ----------------------------------------
+# [Optional] Setup GUI
+# ----------------------------------------
+# RUN apt-get update && \
+#     apt-get upgrade -y && \
+#     apt-get install -y --no-install-recommends \
+#     mate-desktop-environment && \
+#     apt-get clean && \
+#     rm -rf /var/lib/apt/lists/*
 
 # ----------------------------------------
 # Python venv
@@ -112,7 +122,7 @@ RUN sudo apt update && sudo apt install -y bzip2 && \
 # Should be included in base image
 
 # ----------------------------------------
-# Install pipx (takes a while)
+# [Optional] Install pipx (takes a while)
 # ----------------------------------------
 # RUN apt-get update && apt-get install -y --no-install-recommends pipx && \
 #     pipx ensurepath && \
