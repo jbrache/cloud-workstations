@@ -180,7 +180,9 @@ else
     echo "Goose is already installed at $EXPECTED_BIN. Skipping installation."
 fi
 
-# Final Path Verification
+# ----------------------------------------
+# Final Path Verification & Permissions
+# ----------------------------------------
 if [ -f "$$TARGET_HOME/.local/bin" ]; then
     # Make sure the binary is executable
     chmod -R +x "$$TARGET_HOME/.local/bin"
