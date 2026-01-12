@@ -361,14 +361,10 @@ gcloud builds log <BUILD_ID> --region=us-central1
 
 ## 📝 License
 
-Copyright 2024 Google LLC
+Copyright 2025 Google LLC
 
 Licensed under the Apache License, Version 2.0. See LICENSE file for details.
 
-## 🤝 Support
+## Disclaimer
 
-For issues and questions:
-1. Check the troubleshooting section above
-2. Review Google Cloud Workstations documentation
-3. Open an issue in the repository
-4. Contact your Google Cloud support team
+This repository itself is not an officially supported Google product. The code in this repository is for demonstrative purposes only.
