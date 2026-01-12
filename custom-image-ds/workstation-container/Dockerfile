@@ -61,6 +61,31 @@ RUN curl -s https://api.github.com/repos/derailed/k9s/releases/latest \
 | wget -qi - && mkdir -p /opt/workstation/bin && tar -xf k9s_Linux_amd64.tar.gz -C /opt/workstation/bin
 
 # ----------------------------------------
+# Python venv
+# ----------------------------------------
+# Prevent Python from writing .pyc files and enable unbuffered logging
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Dynamically detect Python version and install the matching venv package
+RUN apt-get update && \
+    export PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")') && \
+    apt-get install -y --no-install-recommends \
+    python${PYTHON_VERSION}-venv && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# ----------------------------------------
+# Build Tools
+# ----------------------------------------
+# Most distributions work out of the box. If you encounter issues:
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends \
+#     python3-dev build-essential && \
+#     apt-get clean && \
+#     rm -rf /var/lib/apt/lists/*
+
+# ----------------------------------------
 # Install extensions
 # ----------------------------------------
 

@@ -56,3 +56,6 @@ credentials.json
 
 # Shell files
 *.shvars.sh
+
+# Temporary Zip Files
+workstation-container.zip

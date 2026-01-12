@@ -183,6 +183,14 @@ locals {
   network_id                    = google_compute_network.vpc_network.id
   subnet_id                     = google_compute_subnetwork.workstations_subnet.id
   workstations_container_image  = "${var.region}-docker.pkg.dev/${var.project_id}/workstations-vscode/workstations-vscode"
+  container_folder_path = "${path.module}/workstation-container"
+  # 1. 'fileset' finds all files matching the pattern
+  # 2. The loop runs 'filemd5' on every file found
+  # 3. 'join' merges all individual hashes into one long string
+  # 4. The outer 'md5' hashes that string into a single unique fingerprint
+  container_folder_fingerprint = md5(join("", [
+    for f in fileset(local.container_folder_path, "**") : filemd5("${local.container_folder_path}/${f}")
+  ]))
 }
 
 resource "null_resource" "build_container_image" {
@@ -200,7 +208,7 @@ EOF
   ]
   
   triggers = {
-    dockerfile_hash = filemd5("${path.module}/workstation-container/Dockerfile")
+    container_folder_hash = local.container_folder_fingerprint
     # Uncomment to force rebuild on every apply:
     # timestamp = timestamp()
   }
