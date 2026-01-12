@@ -4,17 +4,33 @@ This custom workstation configuration provides a complete development environmen
 
 ## 🚀 Features
 
-### Development Environment
+### Core Development Environment (Always Installed)
 - **VS Code Server** - Full VS Code experience in the browser
 - **Oh My Zsh** - Enhanced shell with Powerlevel10k theme and autosuggestions
 - **Terraform** - Infrastructure as Code management
-- **k9s** - Kubernetes cluster management UI
-- **Docker** - Container support
+- **Python venv** - Virtual environment support
+- **Docker** - Container support (from base image)
 
-### AI-Powered CLI Tools
-- **Claude** - Anthropic's Claude AI assistant via CLI
-- **Goose** - AI-powered development assistant
-- **Gemini CLI** - Google's Gemini AI (ready to install via npx)
+### AI-Powered CLI Tools (Installed at Runtime)
+These tools are automatically installed during workstation startup:
+- **Claude** - Anthropic's Claude AI assistant via CLI (installed to `~/.local/bin/claude`)
+- **Goose** - AI-powered development assistant (installed to `~/.local/bin/goose`)
+- **uv** - Fast Python package installer (installed to `~/.local/bin/uv`)
+- **Gemini CLI** - Google's Gemini AI (available via npx in base image)
+
+### Optional Components (Commented Out - Enable as Needed)
+These components can be enabled by uncommenting sections in the Dockerfile or startup scripts:
+
+**In Dockerfile:**
+- **k9s** - Kubernetes cluster management UI
+- **GUI Desktop** - MATE desktop environment for remote desktop access
+- **Build Tools** - python3-dev, build-essential (for compiling packages)
+- **VS Code Extensions** - Gemini Code Assist, Google Cloud Code
+- **pipx** - Python application installer
+
+**In Startup Script (300_workstation-customization.sh):**
+- **Chrome Remote Desktop** - Remote desktop access via Chrome
+- **Google Chrome** - Web browser
 
 ### Additional Features
 - Custom user profiles with auto-configuration
@@ -22,6 +38,7 @@ This custom workstation configuration provides a complete development environmen
 - Persistent home directories (200GB SSD)
 - Google Cloud authentication integration
 - Zsh with custom aliases and configurations
+- MCP Server registration (Agent Development Kit docs)
 
 ## 📋 Prerequisites
 

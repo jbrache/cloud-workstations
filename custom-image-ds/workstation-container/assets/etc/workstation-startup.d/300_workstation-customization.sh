@@ -181,6 +181,7 @@ if [ ! -f "$EXPECTED_BIN" ]; then
     # We use 'env' to ensure the variable is exported correctly to the subshell
     if curl -fsSL https://claude.ai/install.sh | HOME="$TARGET_HOME" bash; then
         echo "Successfully installed Claude to $TARGET_HOME"
+
     else
         echo "Error: Installation script failed."
         exit 1
@@ -220,6 +221,8 @@ if [ -d "/home/${username}/.local/bin" ]; then
     # Make sure all binaries inside the directory are executable
     chmod -R +x "/home/${username}/.local/bin"
     
+    # 1. Update PATH for the CURRENT script session (Note: NO SPACES)
+    export PATH="/home/${username}/.local/bin:$PATH"
     # Check if the path is in the current session's PATH
     if [[ ":$PATH:" != *":/home/${username}/.local/bin:"* ]]; then
         echo "Tip: Add '/home/${username}/.local/bin' to your PATH to run installed CLI tools from anywhere."
@@ -238,5 +241,10 @@ chown -R ${username}:${username} /home/${username}
 # MCP Server Registration
 # ----------------------------------------
 # Run the MCP addition as the specific user
-# -i ensures the login environment is simulated so 'uvx' can be found in the PATH
-sudo -i -u "${username}" bash -c "claude mcp add adk-docs --transport stdio -- uvx --from mcpdoc mcpdoc --urls AgentDevelopmentKit:https://google.github.io/adk-docs/llms.txt --transport stdio"
+# Define the absolute path to the binary
+CLAUDE_BIN="/home/${username}/.local/bin/claude"
+
+sudo -u "${username}" bash -c "${CLAUDE_BIN} mcp add adk-docs --scope user --transport stdio -- uvx --from mcpdoc mcpdoc --urls AgentDevelopmentKit:https://google.github.io/adk-docs/llms.txt --transport stdio"
+# claude mcp add --transport http paypal https://mcp.paypal.com/mcp
+# claude mcp add --transport sse square https://mcp.squareup.com/sse
+# claude mcp add --transport http stripe https://mcp.stripe.com
