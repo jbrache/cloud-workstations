@@ -328,12 +328,17 @@ resource "google_workstations_workstation" "user" {
 
   env = {
     OSLOGIN_USER                = var.developers_email[count.index]
+    # Claude
     CLAUDE_CODE_USE_VERTEX      = 1
     CLOUD_ML_REGION             = "us-east5"
     ANTHROPIC_VERTEX_PROJECT_ID = var.project_id
+    # ADK
     GOOGLE_GENAI_USE_VERTEXAI   = true
     GOOGLE_CLOUD_LOCATION       = var.region
     GOOGLE_CLOUD_PROJECT        = var.project_id
+    # Goose
+    GCP_PROJECT_ID              = var.project_id
+    GCP_LOCATION                = var.region
   }
 }
 
