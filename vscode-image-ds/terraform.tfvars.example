@@ -52,7 +52,10 @@ developers_name = [
 # service_account_id = "cloud-workstations-sa"
 
 # Name of the Artifact Registry repository
-# artifact_repo_name = "workstations-vscode"
+# artifact_repo_name = "workstations-custom-images"
+
+# Name of the container image in Artifact Registry
+# artifact_image_name = "workstations-vscode"
 
 # Name of the workstation cluster
 # workstation_cluster_name = "tf-ws-cluster"
@@ -90,4 +93,29 @@ developers_name = [
 #   "team"        = "engineering"
 #   "cost-center" = "development"
 # }
-# Enable IP forwarding (typically false for workstations)
+
+# ============================================
+# CLOUD BUILD CONFIGURATION (optional)
+# ============================================
+# Enable scheduled container image rebuilds via Cloud Build + Cloud Scheduler
+# When enabled, this creates:
+#   - A Cloud Build trigger connected to your GitHub repository
+#   - A Cloud Scheduler job to trigger builds on a schedule
+#   - Required IAM roles for the build service accounts
+
+# Enable Cloud Build trigger and Cloud Scheduler for scheduled container rebuilds
+# schedule_container_rebuilds = false
+
+# GitHub repository owner (username or organization)
+# Required if schedule_container_rebuilds = true
+# github_repo_owner = "your-github-username"
+
+# GitHub repository name
+# github_repo_name = "cloud-workstations"
+
+# Cron schedule for container image rebuilds
+# Examples:
+#   "0 0 * * 0" - Every Sunday at midnight UTC
+#   "0 1 * * *" - Daily at 1am UTC
+#   "0 0 1 * *" - Monthly on the 1st at midnight UTC
+# container_rebuild_schedule = "0 0 * * 0"

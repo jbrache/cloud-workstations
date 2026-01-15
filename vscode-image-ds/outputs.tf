@@ -86,7 +86,7 @@ output "artifact_registry_url" {
 
 output "container_image" {
   description = "Full path to the container image"
-  value       = "${local.container_image}:latest"
+  value       = "${local.container_image}:${local.container_image_tag}"
 }
 
 # -------------------------------------------------------------------
@@ -120,4 +120,28 @@ output "gcloud_start_command" {
 output "gcloud_ssh_command" {
   description = "gcloud command to SSH into a workstation"
   value       = "gcloud workstations ssh <workstation-name> --cluster=${google_workstations_workstation_cluster.default.workstation_cluster_id} --config=${google_workstations_workstation_config.default.workstation_config_id} --region=${var.region}"
+}
+
+# -------------------------------------------------------------------
+# Cloud Build Outputs (conditional)
+# -------------------------------------------------------------------
+
+output "cloudbuild_trigger_id" {
+  description = "ID of the Cloud Build trigger (if enabled)"
+  value       = var.schedule_container_rebuilds ? google_cloudbuild_trigger.container_image[0].trigger_id : null
+}
+
+output "cloudbuild_trigger_name" {
+  description = "Name of the Cloud Build trigger (if enabled)"
+  value       = var.schedule_container_rebuilds ? google_cloudbuild_trigger.container_image[0].name : null
+}
+
+output "cloud_scheduler_job_name" {
+  description = "Name of the Cloud Scheduler job (if enabled)"
+  value       = var.schedule_container_rebuilds ? google_cloud_scheduler_job.trigger_build[0].name : null
+}
+
+output "container_rebuild_schedule" {
+  description = "Cron schedule for container rebuilds (if enabled)"
+  value       = var.schedule_container_rebuilds ? var.container_rebuild_schedule : null
 }

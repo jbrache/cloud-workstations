@@ -23,7 +23,8 @@ locals {
   subnet_id  = google_compute_subnetwork.workstations_subnet.id
 
   # Container image path
-  container_image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_repo_name}/${var.artifact_repo_name}"
+  container_image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_repo_name}/${var.artifact_image_name}"
+  container_image_tag = "latest"
 
   # Container build fingerprint for change detection
   container_folder_path = "${path.module}/workstation-container"
@@ -219,6 +220,7 @@ resource "google_artifact_registry_repository" "workstations_repo" {
   # docker_config {
   #   immutable_tags = false
   # }
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 # -------------------------------------------------------------------
@@ -226,7 +228,7 @@ resource "google_artifact_registry_repository" "workstations_repo" {
 # -------------------------------------------------------------------
 resource "null_resource" "build_container_image" {
   provisioner "local-exec" {
-    command     = "gcloud builds submit workstation-container --tag='${local.container_image}:latest' --project ${var.project_id}"
+    command     = "gcloud builds submit workstation-container --tag='${local.container_image}:${local.container_image_tag}' --project ${var.project_id}"
     working_dir = path.module
   }
 
@@ -238,7 +240,6 @@ resource "null_resource" "build_container_image" {
 
   depends_on = [
     google_artifact_registry_repository.workstations_repo,
-    time_sleep.wait_for_apis,
   ]
 }
 
@@ -283,7 +284,7 @@ resource "google_workstations_workstation_config" "default" {
   }
 
   container {
-    image       = "${local.container_image}:latest"
+    image       = "${local.container_image}:${local.container_image_tag}"
     working_dir = "/home"
     env = {
       CLOUD_WORKSTATIONS_CONFIG_DISABLE_SUDO = false
@@ -364,13 +365,13 @@ resource "google_cloudbuild_trigger" "container_image" {
   substitutions = {
     _REGION        = var.region
     _AR_REPO_NAME  = var.artifact_repo_name
-    _AR_IMAGE_NAME = var.artifact_repo_name
+    _AR_IMAGE_NAME = var.artifact_image_name
+    _TAG           = local.container_image_tag
     _IMAGE_DIR     = "vscode-image-ds/workstation-container"
   }
 
   depends_on = [
     google_artifact_registry_repository.workstations_repo,
-    time_sleep.wait_for_apis,
   ]
 }
 
@@ -388,7 +389,7 @@ resource "google_cloud_scheduler_job" "trigger_build" {
   time_zone   = "UTC"
 
   http_target {
-    uri         = "https://cloudbuild.googleapis.com/v1/projects/${var.project_id}/triggers/${google_cloudbuild_trigger.container_image[0].trigger_id}:run"
+    uri         = "https://cloudbuild.googleapis.com/v1/projects/${var.project_id}/locations/global/triggers/${google_cloudbuild_trigger.container_image[0].trigger_id}:run"
     http_method = "POST"
 
     oauth_token {
@@ -399,7 +400,5 @@ resource "google_cloud_scheduler_job" "trigger_build" {
 
   depends_on = [
     google_cloudbuild_trigger.container_image,
-    google_project_iam_member.compute_sa_cloudbuild,
-    time_sleep.wait_for_apis,
   ]
 }

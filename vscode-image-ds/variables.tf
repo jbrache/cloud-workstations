@@ -87,6 +87,12 @@ variable "service_account_id" {
 variable "artifact_repo_name" {
   description = "Name of the Artifact Registry repository"
   type        = string
+  default     = "workstations-custom-images"
+}
+
+variable "artifact_image_name" {
+  description = "Name of the Artifact Registry image name"
+  type        = string
   default     = "workstations-vscode"
 }
 
@@ -171,7 +177,7 @@ variable "org_policy_wait" {
 }
 
 # -------------------------------------------------------------------
-# Cloud Build Configuration
+# [Optional] Cloud Build Configuration
 # -------------------------------------------------------------------
 
 variable "schedule_container_rebuilds" {
