@@ -74,10 +74,16 @@ variable "subnetwork_range" {
 # Service Account Configuration
 # -------------------------------------------------------------------
 
-variable "service_account_id" {
+variable "cloudworkstations_service_account_id" {
   description = "Service account ID for workstations"
   type        = string
   default     = "cloud-workstations-sa"
+}
+
+variable "cloudbuild_service_account_id" {
+  description = "Service account ID for Cloud Build trigger invocation"
+  type        = string
+  default     = "cloud-build-sa"
 }
 
 # -------------------------------------------------------------------
@@ -199,7 +205,7 @@ variable "github_repo_name" {
 }
 
 variable "container_rebuild_schedule" {
-  description = "Cron schedule for container image rebuilds (e.g., '0 0 * * 0' for evry sunday at 12am UTC)"
+  description = "Cron schedule for container image rebuilds (e.g., '0 0 * * 0' for every sunday at 12am UTC)"
   type        = string
   default     = "0 0 * * 0"  # At 00:00 on Sunday UTC
 }

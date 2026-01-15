@@ -145,3 +145,8 @@ output "container_rebuild_schedule" {
   description = "Cron schedule for container rebuilds (if enabled)"
   value       = var.schedule_container_rebuilds ? var.container_rebuild_schedule : null
 }
+
+output "cloudbuild_service_account_email" {
+  description = "Email of the Cloud Build service account (if enabled)"
+  value       = var.schedule_container_rebuilds ? google_service_account.cloudbuild_sa[0].email : null
+}

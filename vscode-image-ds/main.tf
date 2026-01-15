@@ -96,7 +96,7 @@ resource "google_compute_project_metadata" "default" {
 # -------------------------------------------------------------------
 resource "google_service_account" "workstation_sa" {
   project      = var.project_id
-  account_id   = var.service_account_id
+  account_id   = var.cloudworkstations_service_account_id
   display_name = "Cloud Workstations Service Account"
 }
 
@@ -113,24 +113,35 @@ resource "google_project_iam_member" "workstation_sa_roles" {
   member  = "serviceAccount:${google_service_account.workstation_sa.email}"
 }
 
-# Grant Cloud Build Editor role to default compute service account for trigger invocation
+# Cloud Build service account for triggering builds via Cloud Scheduler
+resource "google_service_account" "cloudbuild_sa" {
+  count        = var.schedule_container_rebuilds ? 1 : 0
+  project      = var.project_id
+  account_id   = var.cloudbuild_service_account_id
+  display_name = "Cloud Build Trigger Service Account"
+}
+
+# Grant Cloud Build Service Account role to the Cloud Build service account for trigger invocation
+# Grant Artifact Registry Repository Administrator role to default Cloud Build service account for image uploads
+resource "google_project_iam_member" "cloudbuild_sa_roles" {
+  for_each = var.schedule_container_rebuilds ? toset([
+    "roles/cloudbuild.builds.builder",
+    "roles/artifactregistry.repoAdmin"
+  ]) : toset([])
+
+  project = var.project_id
+  role    = each.value
+  member  = "serviceAccount:${google_service_account.cloudbuild_sa[0].email}"
+}
+
+# Data source to get project number for default Cloud Build SA
 data "google_project" "main" {
   project_id = var.project_id
 }
 
-resource "google_project_iam_member" "compute_sa_cloudbuild" {
-  count   = var.schedule_container_rebuilds ? 1 : 0
-  project = var.project_id
-  role    = "roles/cloudbuild.builds.editor"
-  member  = "serviceAccount:${data.google_project.main.number}-compute@developer.gserviceaccount.com"
-}
-
-# Grant Artifact Registry Admin role to Cloud Build service account for image uploads
-resource "google_project_iam_member" "cloudbuild_sa_artifact_registry" {
-  count   = var.schedule_container_rebuilds ? 1 : 0
-  project = var.project_id
-  role    = "roles/artifactregistry.admin"
-  member  = "serviceAccount:${data.google_project.main.number}@cloudbuild.gserviceaccount.com"
+resource "time_sleep" "wait_for_sa_roles" {
+  depends_on      = [google_project_iam_member.workstation_sa_roles, google_project_iam_member.cloudbuild_sa_roles]
+  create_duration = "10s"
 }
 
 # -------------------------------------------------------------------
@@ -393,12 +404,13 @@ resource "google_cloud_scheduler_job" "trigger_build" {
     http_method = "POST"
 
     oauth_token {
-      service_account_email = "${data.google_project.main.number}-compute@developer.gserviceaccount.com"
+      service_account_email = google_service_account.cloudbuild_sa[0].email
       scope                 = "https://www.googleapis.com/auth/cloud-platform"
     }
   }
 
   depends_on = [
     google_cloudbuild_trigger.container_image,
+    time_sleep.wait_for_sa_roles,
   ]
 }
