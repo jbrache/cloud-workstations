@@ -41,6 +41,10 @@ These components can be enabled by uncommenting sections in the Dockerfile or st
 - MCP Server registration (Agent Development Kit docs)
 
 ### Optional: Scheduled Container Rebuilds
+**Important**: A pre-requisite here is Connecting your Cloud Build Instance to GitHub. Steps here show you how to accomplish this:
+* [Connect Cloud Build to the GitHub repository](https://docs.cloud.google.com/build/docs/automating-builds/github/connect-repo-github)
+* [Cloud Workstations: Automate container image rebuilds to synchronize base images](https://docs.cloud.google.com/workstations/docs/tutorial-automate-container-image-rebuild)
+
 Enable automatic container image rebuilds via Cloud Build and Cloud Scheduler:
 - **Cloud Build Trigger** - GitHub-connected trigger for building container images
 - **Cloud Scheduler** - Cron-based scheduling (default: every Sunday at midnight UTC)
