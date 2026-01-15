@@ -15,8 +15,35 @@
  */
 
 # -------------------------------------------------------------------
-# ---------- Use Existing Project ----------
-# Enable required APIs on the existing project
+# Local Variables
+# -------------------------------------------------------------------
+locals {
+  # Network references
+  network_id = google_compute_network.vpc_network.id
+  subnet_id  = google_compute_subnetwork.workstations_subnet.id
+
+  # Container image path
+  container_image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_repo_name}/${var.artifact_repo_name}"
+
+  # Container build fingerprint for change detection
+  container_folder_path = "${path.module}/workstation-container"
+  container_folder_fingerprint = md5(join("", [
+    for f in fileset(local.container_folder_path, "**") : filemd5("${local.container_folder_path}/${f}")
+  ]))
+
+  # Common labels for all resources
+  common_labels = merge(var.labels, {
+    environment = var.environment
+    managed_by  = "terraform"
+  })
+
+  # Network tag for firewall rules
+  workstation_tag = "cloud-workstations"
+}
+
+# -------------------------------------------------------------------
+# Project Configuration
+# -------------------------------------------------------------------
 resource "google_project_service" "required_apis" {
   for_each = toset([
     "iam.googleapis.com",
@@ -25,23 +52,19 @@ resource "google_project_service" "required_apis" {
     "cloudbuild.googleapis.com",
     "artifactregistry.googleapis.com",
     "storage.googleapis.com",
-    "workstations.googleapis.com"
+    "workstations.googleapis.com",
+    "cloudscheduler.googleapis.com",
   ])
 
-  project = var.project_id
-  service = each.key
-
+  project            = var.project_id
+  service            = each.key
   disable_on_destroy = false
 }
 
-# Wait after enabling APIs
-resource "time_sleep" "wait_for_project_apis" {
-  depends_on = [
-    google_project_service.required_apis,
-  ]
-  create_duration = "5s"
+resource "time_sleep" "wait_for_apis" {
+  depends_on      = [google_project_service.required_apis]
+  create_duration = var.api_activation_wait
 }
-
 
 resource "google_project_organization_policy" "require_shielded_vm" {
   project    = var.project_id
@@ -54,40 +77,67 @@ resource "google_project_organization_policy" "require_shielded_vm" {
 
 resource "time_sleep" "wait_for_org_policy" {
   depends_on      = [google_project_organization_policy.require_shielded_vm]
-  create_duration = "90s"
+  create_duration = var.org_policy_wait
+}
+
+resource "google_compute_project_metadata" "default" {
+  project = var.project_id
+  metadata = {
+    enable-guest-attributes   = "TRUE"
+    enable-osconfig           = "TRUE"
+    enable-oslogin            = "TRUE"
+    google-monitoring-enabled = "TRUE"
+  }
 }
 
 # -------------------------------------------------------------------
-# ---------- Service Account and IAM ----------
+# Service Account and IAM
+# -------------------------------------------------------------------
 resource "google_service_account" "workstation_sa" {
   project      = var.project_id
-  account_id   = "cloud-workstations-sa"
+  account_id   = var.service_account_id
   display_name = "Cloud Workstations Service Account"
 }
 
-resource "google_project_iam_member" "workstations_iam_network_user" {
+resource "google_project_iam_member" "workstation_sa_roles" {
+  for_each = toset([
+    "roles/compute.networkUser",
+    "roles/artifactregistry.reader",
+    "roles/logging.logWriter",
+    "roles/monitoring.metricWriter",
+  ])
+
   project = var.project_id
-  role    = "roles/compute.networkUser"
+  role    = each.value
   member  = "serviceAccount:${google_service_account.workstation_sa.email}"
 }
 
-resource "google_project_iam_member" "workstations_iam_source_repo" {
-  project = var.project_id
-  role    = "roles/artifactregistry.reader"
-  member  = "serviceAccount:${google_service_account.workstation_sa.email}"
+# Grant Cloud Build Editor role to default compute service account for trigger invocation
+data "google_project" "main" {
+  project_id = var.project_id
 }
 
-resource "google_project_iam_member" "workstations_iam_logwriter" {
+resource "google_project_iam_member" "compute_sa_cloudbuild" {
+  count   = var.schedule_container_rebuilds ? 1 : 0
   project = var.project_id
-  role    = "roles/logging.logWriter"
-  member  = "serviceAccount:${google_service_account.workstation_sa.email}"
+  role    = "roles/cloudbuild.builds.editor"
+  member  = "serviceAccount:${data.google_project.main.number}-compute@developer.gserviceaccount.com"
+}
+
+# Grant Artifact Registry Admin role to Cloud Build service account for image uploads
+resource "google_project_iam_member" "cloudbuild_sa_artifact_registry" {
+  count   = var.schedule_container_rebuilds ? 1 : 0
+  project = var.project_id
+  role    = "roles/artifactregistry.admin"
+  member  = "serviceAccount:${data.google_project.main.number}@cloudbuild.gserviceaccount.com"
 }
 
 # -------------------------------------------------------------------
-# ---------- VPC Network and Firewalls ----------
+# VPC Network
+# -------------------------------------------------------------------
 resource "google_compute_network" "vpc_network" {
   project                 = var.project_id
-  name                    = "workstations-vpc"
+  name                    = var.vpc_name
   auto_create_subnetworks = false
   mtu                     = 1460
 }
@@ -97,74 +147,51 @@ resource "google_compute_subnetwork" "workstations_subnet" {
   name                     = "${var.region}-workstations"
   ip_cidr_range            = var.subnetwork_range
   region                   = var.region
-  private_ip_google_access = true
   network                  = google_compute_network.vpc_network.name
-
+  private_ip_google_access = true
 }
 
-resource "google_compute_firewall" "workstation-egress" {
-  name    = "workstation-internal-egress"
-  network = google_compute_network.vpc_network.name
-  project = var.project_id
-
-  allow {
-    protocol = "tcp"
-    ports    = ["980", "443"]
-  }
-
-  priority    = "10"
+# -------------------------------------------------------------------
+# Firewall Rules
+# -------------------------------------------------------------------
+resource "google_compute_firewall" "workstation_egress" {
+  project     = var.project_id
+  name        = "cloud-workstations-egress"
+  network     = google_compute_network.vpc_network.name
   direction   = "EGRESS"
-  target_tags = ["cloud-workstations-instance"]
-}
-
-#workstation internal ingress
-resource "google_compute_firewall" "workstation-ingress" {
-  name    = "workstation-internal-ingress"
-  network = google_compute_network.vpc_network.name
-  project = var.project_id
-
-  allow {
-    protocol = "icmp"
-  }
+  priority    = 10
+  target_tags = [local.workstation_tag]
 
   allow {
     protocol = "tcp"
-    ports    = ["0-65535"]
+    ports    = ["443", "980"]
   }
-
-  allow {
-    protocol = "udp"
-    ports    = ["0-65535"]
-  }
-
-  target_tags   = []
-  source_ranges = [var.subnetwork_range] 
-  direction     = "INGRESS"
-  priority      = "20"
 }
 
-resource "google_artifact_registry_repository" "workstations-repo" {
+resource "google_compute_firewall" "workstation_ingress" {
   project       = var.project_id
-  location      = var.region
-  repository_id = "workstations-vscode"
-  description   = "Docker repository for Cloud Worstations"
-  format        = "DOCKER"
+  name          = "cloud-workstations-ingress"
+  network       = google_compute_network.vpc_network.name
+  direction     = "INGRESS"
+  priority      = 20
+  target_tags   = [local.workstation_tag]
+  source_ranges = [var.subnetwork_range]
 
-  docker_config {
-# Set to false to allow tag overwrites
-    immutable_tags = false
-  }
+  allow { protocol = "icmp" }
+  allow { protocol = "tcp" }
+  allow { protocol = "udp" }
 }
 
-# Cloud Router for NAT
+# -------------------------------------------------------------------
+# Cloud NAT
+# -------------------------------------------------------------------
 resource "google_compute_router" "workstations_router" {
   project = var.project_id
   name    = "workstations-router-${var.region}"
   region  = var.region
-  network = google_compute_network.vpc_network.id
+  network = local.network_id
 }
 
-# Cloud NAT for private workstations
 resource "google_compute_router_nat" "workstations_nat" {
   project                            = var.project_id
   name                               = "workstations-nat-${var.region}"
@@ -179,84 +206,84 @@ resource "google_compute_router_nat" "workstations_nat" {
   }
 }
 
-locals {
-  network_id                    = google_compute_network.vpc_network.id
-  subnet_id                     = google_compute_subnetwork.workstations_subnet.id
-  workstations_container_image  = "${var.region}-docker.pkg.dev/${var.project_id}/workstations-vscode/workstations-vscode"
-  container_folder_path = "${path.module}/workstation-container"
-  # 1. 'fileset' finds all files matching the pattern
-  # 2. The loop runs 'filemd5' on every file found
-  # 3. 'join' merges all individual hashes into one long string
-  # 4. The outer 'md5' hashes that string into a single unique fingerprint
-  container_folder_fingerprint = md5(join("", [
-    for f in fileset(local.container_folder_path, "**") : filemd5("${local.container_folder_path}/${f}")
-  ]))
+# -------------------------------------------------------------------
+# Artifact Registry
+# -------------------------------------------------------------------
+resource "google_artifact_registry_repository" "workstations_repo" {
+  project       = var.project_id
+  location      = var.region
+  repository_id = var.artifact_repo_name
+  description   = "Docker repository for Cloud Workstations"
+  format        = "DOCKER"
+
+  # docker_config {
+  #   immutable_tags = false
+  # }
 }
 
+# -------------------------------------------------------------------
+# Container Build
+# -------------------------------------------------------------------
 resource "null_resource" "build_container_image" {
   provisioner "local-exec" {
-    command     = <<EOF
-gcloud config set project ${var.project_id}
-gcloud builds submit workstation-container --tag="${var.region}-docker.pkg.dev/${var.project_id}/workstations-vscode/workstations-vscode:latest" --project ${var.project_id}
-EOF
+    command     = "gcloud builds submit workstation-container --tag='${local.container_image}:latest' --project ${var.project_id}"
     working_dir = path.module
   }
-  
-  depends_on = [
-    google_artifact_registry_repository.workstations-repo,
-    google_project_service.required_apis
-  ]
-  
+
   triggers = {
     container_folder_hash = local.container_folder_fingerprint
     # Uncomment to force rebuild on every apply:
     # timestamp = timestamp()
   }
+
+  depends_on = [
+    google_artifact_registry_repository.workstations_repo,
+    time_sleep.wait_for_apis,
+  ]
 }
 
-# Creating  workstation cluster 
-resource "google_workstations_workstation_cluster" "default_config" {
+# -------------------------------------------------------------------
+# Workstation Cluster
+# -------------------------------------------------------------------
+resource "google_workstations_workstation_cluster" "default" {
   provider               = google-beta
   project                = var.project_id
-  workstation_cluster_id = "tf-ws-cluster"
+  workstation_cluster_id = var.workstation_cluster_name
+  location               = var.region
   network                = local.network_id
   subnetwork             = local.subnet_id
-  location               = var.region
-
-  labels = {
-    "cloud-workstations-instance" = "vscode"
-  }
+  labels                 = local.common_labels
 }
 
-resource "google_compute_project_metadata" "default" {
-  metadata = {
-    enable-guest-attributes    = "TRUE"
-    enable-osconfig            = "TRUE"
-    enable-oslogin             = "TRUE"
-    google-monitoring-enabled  = "TRUE"
-  }
-}
-
-# Creating workstation config 
-resource "google_workstations_workstation_config" "default_config" {
+# -------------------------------------------------------------------
+# Workstation Config
+# -------------------------------------------------------------------
+resource "google_workstations_workstation_config" "default" {
   provider               = google-beta
-  workstation_config_id  = "tf-ws-config"
-  workstation_cluster_id = google_workstations_workstation_cluster.default_config.workstation_cluster_id
-  location               = var.region
   project                = var.project_id
+  workstation_config_id  = var.workstation_config_name
+  workstation_cluster_id = google_workstations_workstation_cluster.default.workstation_cluster_id
+  location               = var.region
+
+  labels = merge(local.common_labels, {
+    "cloud-workstations-ide" = "vscode"
+  })
+
+  idle_timeout    = var.idle_timeout
+  running_timeout = var.running_timeout
 
   host {
     gce_instance {
-      machine_type                = "e2-standard-4"
+      machine_type                = var.machine_type
       boot_disk_size_gb           = 50
       disable_public_ip_addresses = true
       service_account             = google_service_account.workstation_sa.email
-      tags = ["workstation"]
+      tags                        = [local.workstation_tag]
     }
   }
 
   container {
-    image       = "${local.workstations_container_image}:latest"
+    image       = "${local.container_image}:latest"
     working_dir = "/home"
     env = {
       CLOUD_WORKSTATIONS_CONFIG_DISABLE_SUDO = false
@@ -264,51 +291,115 @@ resource "google_workstations_workstation_config" "default_config" {
   }
 
   persistent_directories {
-    mount_path = "/home" 
+    mount_path = "/home"
     gce_pd {
-      size_gb        = 200
-      disk_type      = "pd-ssd"
-      reclaim_policy = "DELETE" # delete the disk after the workstation is deleted.
+      size_gb        = var.persistent_disk_size_gb
+      disk_type      = var.persistent_disk_type
+      reclaim_policy = var.persistent_disk_reclaim_policy
     }
   }
 
-  depends_on = [google_workstations_workstation_cluster.default_config]
+  depends_on = [null_resource.build_container_image]
 }
 
-# Workstation creation
-resource "google_workstations_workstation" "workstation_user" {
+# -------------------------------------------------------------------
+# Workstations
+# -------------------------------------------------------------------
+resource "google_workstations_workstation" "user" {
   count                  = length(var.developers_email)
   provider               = google-beta
-  workstation_id         = "workstation-${var.developers_name[count.index]}"
-  workstation_config_id  = google_workstations_workstation_config.default_config.workstation_config_id
-  workstation_cluster_id = google_workstations_workstation_cluster.default_config.workstation_cluster_id
-  location               = var.region
   project                = var.project_id
+  location               = var.region
+  workstation_id         = "workstation-${var.developers_name[count.index]}"
+  workstation_cluster_id = google_workstations_workstation_cluster.default.workstation_cluster_id
+  workstation_config_id  = google_workstations_workstation_config.default.workstation_config_id
+
   env = {
-    OSLOGIN_USER = "${var.developers_email[count.index]}"
-    CLAUDE_CODE_USE_VERTEX = 1
-    CLOUD_ML_REGION = "us-east5"
-    ANTHROPIC_VERTEX_PROJECT_ID = "${var.project_id}"
-    GOOGLE_GENAI_USE_VERTEXAI = true
-    GOOGLE_CLOUD_LOCATION = "${var.region}"
-    GOOGLE_CLOUD_PROJECT = "${var.project_id}"
+    OSLOGIN_USER                = var.developers_email[count.index]
+    CLAUDE_CODE_USE_VERTEX      = 1
+    CLOUD_ML_REGION             = "us-east5"
+    ANTHROPIC_VERTEX_PROJECT_ID = var.project_id
+    GOOGLE_GENAI_USE_VERTEXAI   = true
+    GOOGLE_CLOUD_LOCATION       = var.region
+    GOOGLE_CLOUD_PROJECT        = var.project_id
   }
-
-  depends_on = [google_workstations_workstation_cluster.default_config]
 }
 
-# iam permissions to access workstation i.e workstations.user
-resource "google_workstations_workstation_iam_member" "member" {
+resource "google_workstations_workstation_iam_member" "user" {
   count                  = length(var.developers_email)
   provider               = google-beta
   project                = var.project_id
   location               = var.region
-  workstation_cluster_id = google_workstations_workstation_cluster.default_config.workstation_cluster_id
-  workstation_config_id  = google_workstations_workstation_config.default_config.workstation_config_id
-  workstation_id         = "workstation-${var.developers_name[count.index]}"
+  workstation_cluster_id = google_workstations_workstation_cluster.default.workstation_cluster_id
+  workstation_config_id  = google_workstations_workstation_config.default.workstation_config_id
+  workstation_id         = google_workstations_workstation.user[count.index].workstation_id
   role                   = "roles/workstations.user"
   member                 = "user:${var.developers_email[count.index]}"
-
-  depends_on = [google_workstations_workstation.workstation_user]
 }
 
+# -------------------------------------------------------------------
+# Cloud Build Trigger
+# -------------------------------------------------------------------
+# https://docs.cloud.google.com/workstations/docs/tutorial-automate-container-image-rebuild
+resource "google_cloudbuild_trigger" "container_image" {
+  count       = var.schedule_container_rebuilds ? 1 : 0
+  project     = var.project_id
+  name        = "workstations-image-trigger"
+  description = "Trigger to build Cloud Workstations container image"
+  location    = "global"
+
+  source_to_build {
+    uri       = "https://github.com/${var.github_repo_owner}/${var.github_repo_name}"
+    ref       = "refs/heads/main"
+    repo_type = "GITHUB"
+  }
+
+  git_file_source {
+    path      = "vscode-image-ds/workstation-container/cloudbuild.yaml"
+    uri       = "https://github.com/${var.github_repo_owner}/${var.github_repo_name}"
+    revision  = "refs/heads/main"
+    repo_type = "GITHUB"
+  }
+
+  substitutions = {
+    _REGION        = var.region
+    _AR_REPO_NAME  = var.artifact_repo_name
+    _AR_IMAGE_NAME = var.artifact_repo_name
+    _IMAGE_DIR     = "vscode-image-ds/workstation-container"
+  }
+
+  depends_on = [
+    google_artifact_registry_repository.workstations_repo,
+    time_sleep.wait_for_apis,
+  ]
+}
+
+# -------------------------------------------------------------------
+# Cloud Scheduler Job
+# -------------------------------------------------------------------
+# Scheduled job to trigger container image rebuild daily at 1am
+resource "google_cloud_scheduler_job" "trigger_build" {
+  count       = var.schedule_container_rebuilds ? 1 : 0
+  project     = var.project_id
+  name        = "workstations-image-rebuild"
+  description = "Scheduled trigger to rebuild Cloud Workstations container image"
+  region      = var.region
+  schedule    = var.container_rebuild_schedule
+  time_zone   = "UTC"
+
+  http_target {
+    uri         = "https://cloudbuild.googleapis.com/v1/projects/${var.project_id}/triggers/${google_cloudbuild_trigger.container_image[0].trigger_id}:run"
+    http_method = "POST"
+
+    oauth_token {
+      service_account_email = "${data.google_project.main.number}-compute@developer.gserviceaccount.com"
+      scope                 = "https://www.googleapis.com/auth/cloud-platform"
+    }
+  }
+
+  depends_on = [
+    google_cloudbuild_trigger.container_image,
+    google_project_iam_member.compute_sa_cloudbuild,
+    time_sleep.wait_for_apis,
+  ]
+}
