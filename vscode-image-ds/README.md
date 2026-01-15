@@ -40,6 +40,12 @@ These components can be enabled by uncommenting sections in the Dockerfile or st
 - Zsh with custom aliases and configurations
 - MCP Server registration (Agent Development Kit docs)
 
+### Optional: Scheduled Container Rebuilds
+Enable automatic container image rebuilds via Cloud Build and Cloud Scheduler:
+- **Cloud Build Trigger** - GitHub-connected trigger for building container images
+- **Cloud Scheduler** - Cron-based scheduling (default: every Sunday at midnight UTC)
+- **Service Account** - Dedicated `cloud-build-sa` for secure trigger invocation
+
 ## 📋 Prerequisites
 
 Before deploying this custom workstation, ensure you have:
@@ -78,18 +84,21 @@ Edit `terraform.tfvars` with your specific values:
 project_id    = "your-gcp-project-id"
 environment   = "dev"
 region        = "us-central1"
-zone          = "us-central1-a"
 
 # Developer access configuration
 developers_email = ["developer1@example.com", "developer2@example.com"]
 developers_name  = ["developer1", "developer2"]
 
 # Instance configuration (optional)
-instance_owners    = ["admin@example.com"]
 subnetwork_range   = "10.2.0.0/16"
 machine_type       = "e2-standard-4"
-boot_disk_size_gb  = "200"
-data_disk_size_gb  = "100"
+
+# [Optional] Cloud Build scheduled container rebuilds
+# When enabled, creates Cloud Build trigger + Cloud Scheduler for automatic image updates
+# schedule_container_rebuilds = true
+# github_repo_owner           = "your-github-username"
+# github_repo_name            = "cloud-workstations"
+# container_rebuild_schedule  = "0 0 * * 0"  # Every Sunday at midnight UTC
 ```
 
 ### 3. Authenticate with Google Cloud
@@ -157,6 +166,12 @@ gcloud config set project YOUR_PROJECT_ID
   - Compute Network User
   - Artifact Registry Reader
   - Logging Log Writer
+
+### Optional: Cloud Build Resources (when `schedule_container_rebuilds = true`)
+- **Cloud Build Trigger:** `workstations-image-trigger` - GitHub-connected manual trigger
+- **Cloud Scheduler Job:** `workstations-image-rebuild` - Scheduled trigger invocation
+- **Service Account:** `cloud-build-sa` with `roles/cloudbuild.builds.editor`
+- **IAM Binding:** Default Cloud Build SA granted `roles/artifactregistry.admin`
 
 ## 🔐 Access Your Workstation
 

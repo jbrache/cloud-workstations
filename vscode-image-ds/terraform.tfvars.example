@@ -49,7 +49,7 @@ developers_name = [
 # vpc_name = "workstations-vpc"
 
 # Service account ID for workstations
-# service_account_id = "cloud-workstations-sa"
+# cloudworkstations_service_account_id = "cloud-workstations-sa"
 
 # Name of the Artifact Registry repository
 # artifact_repo_name = "workstations-custom-images"
@@ -119,3 +119,6 @@ developers_name = [
 #   "0 1 * * *" - Daily at 1am UTC
 #   "0 0 1 * *" - Monthly on the 1st at midnight UTC
 # container_rebuild_schedule = "0 0 * * 0"
+
+# Service account ID for Cloud Build trigger invocation
+# cloudbuild_service_account_id = "cloud-build-sa"
