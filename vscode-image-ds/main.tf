@@ -378,7 +378,7 @@ resource "google_cloudbuild_trigger" "container_image" {
 # -------------------------------------------------------------------
 # Cloud Scheduler Job
 # -------------------------------------------------------------------
-# Scheduled job to trigger container image rebuild daily at 1am
+# Scheduled job to trigger container image rebuild every Sunday at 12am UTC
 resource "google_cloud_scheduler_job" "trigger_build" {
   count       = var.schedule_container_rebuilds ? 1 : 0
   project     = var.project_id
