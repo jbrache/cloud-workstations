@@ -84,9 +84,24 @@ output "artifact_registry_url" {
   value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.workstations_repo.repository_id}"
 }
 
-output "container_image" {
-  description = "Full path to the container image"
-  value       = "${local.container_image}:${local.container_image_tag}"
+output "vscode_container_image" {
+  description = "Full path to the VS Code container image"
+  value       = "${local.vscode_container_image}:${local.container_image_tag}"
+}
+
+output "antigravity_container_image" {
+  description = "Full path to the Antigravity container image (if enabled)"
+  value       = var.enable_antigravity_workstation ? "${local.antigravity_container_image}:${local.container_image_tag}" : null
+}
+
+output "antigravity_workstation_config_id" {
+  description = "The ID of the Antigravity workstation configuration (if enabled)"
+  value       = var.enable_antigravity_workstation ? google_workstations_workstation_config.antigravity[0].id : null
+}
+
+output "antigravity_workstation_ids" {
+  description = "List of Antigravity workstation IDs created (if enabled)"
+  value       = var.enable_antigravity_workstation ? [for ws in google_workstations_workstation.antigravity_user : ws.id] : []
 }
 
 # -------------------------------------------------------------------

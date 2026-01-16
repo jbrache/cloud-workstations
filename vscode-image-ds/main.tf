@@ -22,14 +22,23 @@ locals {
   network_id = google_compute_network.vpc_network.id
   subnet_id  = google_compute_subnetwork.workstations_subnet.id
 
-  # Container image path
-  container_image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_repo_name}/${var.artifact_image_name}"
-  container_image_tag = "latest"
+  # Container image path - VS Code
+  vscode_container_image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_repo_name}/${var.artifact_image_name}"
+  container_image_tag    = "latest"
 
-  # Container build fingerprint for change detection
-  container_folder_path = "${path.module}/workstation-container"
-  container_folder_fingerprint = md5(join("", [
-    for f in fileset(local.container_folder_path, "**") : filemd5("${local.container_folder_path}/${f}")
+  # Container build fingerprint for change detection - VS Code
+  vscode_container_folder_path = "${path.module}/workstation-container-vscode"
+  vscode_container_folder_fingerprint = md5(join("", [
+    for f in fileset(local.vscode_container_folder_path, "**") : filemd5("${local.vscode_container_folder_path}/${f}")
+  ]))
+
+  # Container image path - Antigravity
+  antigravity_container_image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_repo_name}/${var.antigravity_artifact_image_name}"
+
+  # Container build fingerprint for change detection - Antigravity
+  antigravity_container_folder_path = "${path.module}/workstation-container-antigravity"
+  antigravity_container_folder_fingerprint = md5(join("", [
+    for f in fileset(local.antigravity_container_folder_path, "**") : filemd5("${local.antigravity_container_folder_path}/${f}")
   ]))
 
   # Common labels for all resources
@@ -235,16 +244,16 @@ resource "google_artifact_registry_repository" "workstations_repo" {
 }
 
 # -------------------------------------------------------------------
-# Container Build
+# Container Build - VS Code
 # -------------------------------------------------------------------
-resource "null_resource" "build_container_image" {
+resource "null_resource" "build_vscode_container_image" {
   provisioner "local-exec" {
-    command     = "gcloud builds submit workstation-container --tag='${local.container_image}:${local.container_image_tag}' --project ${var.project_id}"
+    command     = "gcloud builds submit workstation-container-vscode --tag='${local.vscode_container_image}:${local.container_image_tag}' --project ${var.project_id}"
     working_dir = path.module
   }
 
   triggers = {
-    container_folder_hash = local.container_folder_fingerprint
+    container_folder_hash = local.vscode_container_folder_fingerprint
     # Uncomment to force rebuild on every apply:
     # timestamp = timestamp()
   }
@@ -253,6 +262,7 @@ resource "null_resource" "build_container_image" {
     google_artifact_registry_repository.workstations_repo,
   ]
 }
+
 
 # -------------------------------------------------------------------
 # Workstation Cluster
@@ -268,12 +278,12 @@ resource "google_workstations_workstation_cluster" "default" {
 }
 
 # -------------------------------------------------------------------
-# Workstation Config
+# Workstation Config - VS Code
 # -------------------------------------------------------------------
 resource "google_workstations_workstation_config" "default" {
   provider               = google-beta
   project                = var.project_id
-  workstation_config_id  = var.workstation_config_name
+  workstation_config_id  = "${var.workstation_config_name}-vscode"
   workstation_cluster_id = google_workstations_workstation_cluster.default.workstation_cluster_id
   location               = var.region
 
@@ -295,7 +305,7 @@ resource "google_workstations_workstation_config" "default" {
   }
 
   container {
-    image       = "${local.container_image}:${local.container_image_tag}"
+    image       = "${local.vscode_container_image}:${local.container_image_tag}"
     working_dir = "/home"
     env = {
       CLOUD_WORKSTATIONS_CONFIG_DISABLE_SUDO = false
@@ -311,34 +321,35 @@ resource "google_workstations_workstation_config" "default" {
     }
   }
 
-  depends_on = [null_resource.build_container_image]
+  depends_on = [null_resource.build_vscode_container_image]
 }
 
+
 # -------------------------------------------------------------------
-# Workstations
+# Workstations - VS Code
 # -------------------------------------------------------------------
 resource "google_workstations_workstation" "user" {
   count                  = length(var.developers_email)
   provider               = google-beta
   project                = var.project_id
   location               = var.region
-  workstation_id         = "workstation-${var.developers_name[count.index]}"
+  workstation_id         = "vscode-ws-${var.developers_name[count.index]}"
   workstation_cluster_id = google_workstations_workstation_cluster.default.workstation_cluster_id
   workstation_config_id  = google_workstations_workstation_config.default.workstation_config_id
 
   env = {
-    OSLOGIN_USER                = var.developers_email[count.index]
+    OSLOGIN_USER = var.developers_email[count.index]
     # Claude
     CLAUDE_CODE_USE_VERTEX      = 1
     CLOUD_ML_REGION             = "us-east5"
     ANTHROPIC_VERTEX_PROJECT_ID = var.project_id
     # ADK
-    GOOGLE_GENAI_USE_VERTEXAI   = true
-    GOOGLE_CLOUD_LOCATION       = var.region
-    GOOGLE_CLOUD_PROJECT        = var.project_id
+    GOOGLE_GENAI_USE_VERTEXAI = true
+    GOOGLE_CLOUD_LOCATION     = var.region
+    GOOGLE_CLOUD_PROJECT      = var.project_id
     # Goose
-    GCP_PROJECT_ID              = var.project_id
-    GCP_LOCATION                = var.region
+    GCP_PROJECT_ID = var.project_id
+    GCP_LOCATION   = var.region
   }
 }
 
@@ -354,15 +365,16 @@ resource "google_workstations_workstation_iam_member" "user" {
   member                 = "user:${var.developers_email[count.index]}"
 }
 
+
 # -------------------------------------------------------------------
-# Cloud Build Trigger
+# Cloud Build Trigger - VS Code
 # -------------------------------------------------------------------
 # https://docs.cloud.google.com/workstations/docs/tutorial-automate-container-image-rebuild
 resource "google_cloudbuild_trigger" "container_image" {
   count       = var.schedule_container_rebuilds ? 1 : 0
   project     = var.project_id
-  name        = "workstations-image-trigger"
-  description = "Trigger to build Cloud Workstations container image"
+  name        = "workstations-vscode-image-trigger"
+  description = "Trigger to build Cloud Workstations VS Code container image"
   location    = "global"
 
   source_to_build {
@@ -372,7 +384,7 @@ resource "google_cloudbuild_trigger" "container_image" {
   }
 
   git_file_source {
-    path      = "vscode-image-ds/workstation-container/cloudbuild.yaml"
+    path      = "vscode-image-ds/workstation-container-vscode/cloudbuild.yaml"
     uri       = "https://github.com/${var.github_repo_owner}/${var.github_repo_name}"
     revision  = "refs/heads/main"
     repo_type = "GITHUB"
@@ -383,7 +395,7 @@ resource "google_cloudbuild_trigger" "container_image" {
     _AR_REPO_NAME  = var.artifact_repo_name
     _AR_IMAGE_NAME = var.artifact_image_name
     _TAG           = local.container_image_tag
-    _IMAGE_DIR     = "vscode-image-ds/workstation-container"
+    _IMAGE_DIR     = "vscode-image-ds/workstation-container-vscode"
   }
 
   depends_on = [
@@ -392,14 +404,14 @@ resource "google_cloudbuild_trigger" "container_image" {
 }
 
 # -------------------------------------------------------------------
-# Cloud Scheduler Job
+# Cloud Scheduler Job - VS Code
 # -------------------------------------------------------------------
 # Scheduled job to trigger container image rebuild every Sunday at 12am UTC
 resource "google_cloud_scheduler_job" "trigger_build" {
   count       = var.schedule_container_rebuilds ? 1 : 0
   project     = var.project_id
-  name        = "workstations-image-rebuild"
-  description = "Scheduled trigger to rebuild Cloud Workstations container image"
+  name        = "workstations-vscode-image-rebuild"
+  description = "Scheduled trigger to rebuild Cloud Workstations VS Code container image"
   region      = var.region
   schedule    = var.container_rebuild_schedule
   time_zone   = "UTC"

@@ -102,6 +102,18 @@ variable "artifact_image_name" {
   default     = "workstations-vscode"
 }
 
+variable "antigravity_artifact_image_name" {
+  description = "Name of the Artifact Registry image name for Antigravity IDE"
+  type        = string
+  default     = "workstations-antigravity"
+}
+
+variable "enable_antigravity_workstation" {
+  description = "Enable creation of Antigravity IDE workstations (set to false to only deploy VS Code workstations)"
+  type        = bool
+  default     = false
+}
+
 # -------------------------------------------------------------------
 # Workstation Cluster Configuration
 # -------------------------------------------------------------------
@@ -157,13 +169,13 @@ variable "persistent_disk_reclaim_policy" {
 variable "idle_timeout" {
   description = "Duration after which a workstation will be stopped if idle (e.g., '7200s' for 2 hours). Set to null to disable."
   type        = string
-  default     = "7200s"  # 2 hours
+  default     = "7200s" # 2 hours
 }
 
 variable "running_timeout" {
   description = "Maximum duration a workstation can run (e.g., '43200s' for 12 hours). Set to null to disable."
   type        = string
-  default     = "43200s"  # 12 hours
+  default     = "43200s" # 12 hours
 }
 
 # -------------------------------------------------------------------
@@ -207,5 +219,5 @@ variable "github_repo_name" {
 variable "container_rebuild_schedule" {
   description = "Cron schedule for container image rebuilds (e.g., '0 0 * * 0' for every sunday at 12am UTC)"
   type        = string
-  default     = "0 0 * * 0"  # At 00:00 on Sunday UTC
+  default     = "0 0 * * 0" # At 00:00 on Sunday UTC
 }
