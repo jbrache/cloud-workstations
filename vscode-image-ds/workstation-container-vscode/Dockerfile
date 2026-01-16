@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,161 +14,125 @@
 
 FROM us-central1-docker.pkg.dev/cloud-workstations-images/predefined/base:latest
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 # ----------------------------------------
-# VS Code Server
+# Environment Variables
 # ----------------------------------------
 ENV VSCODE=/opt/vscode/code
-RUN arch=$(uname -m) && \
-if [ "${arch}" = "x86_64" ]; then \
-arch="x64"; \
-elif [ "${arch}" = "aarch64" ]; then \
-arch="arm64"; \
-elif [ "${arch}" = "armv7l" ]; then \
-arch="armhf"; \
-fi && \
-mkdir -p /opt/vscode && \
-curl -o /opt/vscode/vscode.tar.gz -L "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64"
-RUN tar -xzf /opt/vscode/vscode.tar.gz -C /opt/vscode/
-RUN rm /opt/vscode/vscode.tar.gz
-
-# ----------------------------------------
-# Terraform to manage various kinds of infrastructure
-# ----------------------------------------
-RUN wget -O- https://apt.releases.hashicorp.com/gpg | \
-gpg --dearmor | \
-sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
-echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
-https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
-sudo tee /etc/apt/sources.list.d/hashicorp.list
-RUN sudo apt update && sudo apt install -y zsh gnupg software-properties-common terraform
-RUN apt-get clean
-
-# ----------------------------------------
-# Install zsh
-# ----------------------------------------
 ENV ZSH=/opt/workstation/oh-my-zsh
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
-  git clone https://github.com/zsh-users/zsh-autosuggestions /opt/workstation/oh-my-zsh/plugins/zsh-autosuggestions && \
-  git clone --depth=1 https://github.com/romkatv/powerlevel10k.git /opt/workstation/oh-my-zsh/custom/themes/powerlevel10k
-
-# ----------------------------------------
-# [Optional] Install k9s
-# ----------------------------------------
-# RUN curl -s https://api.github.com/repos/derailed/k9s/releases/latest \
-# | grep "browser_download_url.*Linux_amd64.tar.gz" \
-# | cut -d : -f 2,3 \
-# | tr -d \" \
-# | wget -qi - && mkdir -p /opt/workstation/bin && tar -xf k9s_Linux_amd64.tar.gz -C /opt/workstation/bin
-
-# ----------------------------------------
-# [Optional] Setup GUI
-# ----------------------------------------
-# RUN apt-get update && \
-#     apt-get upgrade -y && \
-#     apt-get install -y --no-install-recommends \
-#     mate-desktop-environment && \
-#     apt-get clean && \
-#     rm -rf /var/lib/apt/lists/*
-
-# ----------------------------------------
-# Python venv
-# ----------------------------------------
 # Prevent Python from writing .pyc files and enable unbuffered logging
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Dynamically detect Python version and install the matching venv package
+# ----------------------------------------
+# System Dependencies & Terraform
+# ----------------------------------------
+# Consolidated apt installations with proper cleanup
 RUN apt-get update && \
-    export PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")') && \
+    # Add Hashicorp repository for Terraform
+    wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null && \
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list && \
+    apt-get update && \
+    # Install all system packages
     apt-get install -y --no-install-recommends \
-    python${PYTHON_VERSION}-venv && \
+        zsh \
+        gnupg \
+        software-properties-common \
+        terraform \
+        bzip2 \
+        inotify-tools && \
+    # Dynamically detect Python version and install venv
+    export PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")') && \
+    apt-get install -y --no-install-recommends python${PYTHON_VERSION}-venv && \
+    # Cleanup
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # ----------------------------------------
-# Build Tools
+# VS Code Server
 # ----------------------------------------
-# Most distributions work out of the box. If you encounter issues:
+# Single layer: download, extract, cleanup in one command
+# Uses detected architecture for proper platform support
+RUN arch=$(uname -m) && \
+    case "${arch}" in \
+        x86_64)  arch="x64" ;; \
+        aarch64) arch="arm64" ;; \
+        armv7l)  arch="armhf" ;; \
+    esac && \
+    mkdir -p /opt/vscode && \
+    curl -fsSL "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-${arch}" -o /tmp/vscode.tar.gz && \
+    tar -xzf /tmp/vscode.tar.gz -C /opt/vscode/ && \
+    rm -f /tmp/vscode.tar.gz
+
+# ----------------------------------------
+# Oh My Zsh with plugins and theme
+# ----------------------------------------
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
+    git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions /opt/workstation/oh-my-zsh/plugins/zsh-autosuggestions && \
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git /opt/workstation/oh-my-zsh/custom/themes/powerlevel10k
+
+# ----------------------------------------
+# [Optional] Install k9s
+# ----------------------------------------
+# RUN curl -fsSL https://api.github.com/repos/derailed/k9s/releases/latest \
+#     | grep "browser_download_url.*Linux_amd64.tar.gz" \
+#     | cut -d : -f 2,3 \
+#     | tr -d \" \
+#     | wget -qi - && \
+#     mkdir -p /opt/workstation/bin && \
+#     tar -xf k9s_Linux_amd64.tar.gz -C /opt/workstation/bin && \
+#     rm -f k9s_Linux_amd64.tar.gz
+
+# ----------------------------------------
+# [Optional] Setup GUI (MATE Desktop)
+# ----------------------------------------
 # RUN apt-get update && \
-#     apt-get install -y --no-install-recommends \
-#     python3-dev build-essential && \
+#     apt-get install -y --no-install-recommends mate-desktop-environment && \
 #     apt-get clean && \
 #     rm -rf /var/lib/apt/lists/*
 
 # ----------------------------------------
-# Install extensions
+# [Optional] Build Tools for Python packages
 # ----------------------------------------
+# Most distributions work out of the box. If you encounter issues:
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends python3-dev build-essential && \
+#     apt-get clean && \
+#     rm -rf /var/lib/apt/lists/*
 
+# ----------------------------------------
+# [Optional] VS Code Extensions
+# ----------------------------------------
 # Gemini Code Assist + Google Cloud Code
 # https://marketplace.visualstudio.com/items?itemName=GoogleCloudTools.cloudcode
-# RUN /opt/vscode/code code tunnel --accept-server-license-terms
-# RUN /opt/vscode/code --install-extension googlecloudtools.cloudcode
-
-# ----------------------------------------
-# Install Claude Code
-# ----------------------------------------
-# Handled in /etc/workstation-startup.d/300_workstation-customization.sh
-
-# ----------------------------------------
-# Install Goose Dependency
-# ----------------------------------------
-RUN sudo apt update && sudo apt install -y bzip2 && \
-    apt-get clean
-# Handled in /etc/workstation-startup.d/300_workstation-customization.sh
-
-# ----------------------------------------
-# Install Gemini CLI
-# ----------------------------------------
-# Should be included in base image
+# RUN /opt/vscode/code code tunnel --accept-server-license-terms && \
+#     /opt/vscode/code --install-extension googlecloudtools.cloudcode
 
 # ----------------------------------------
 # [Optional] Install pipx (takes a while)
 # ----------------------------------------
-# RUN apt-get update && apt-get install -y --no-install-recommends pipx && \
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends pipx && \
 #     pipx ensurepath && \
-#     apt-get clean
+#     apt-get clean && \
+#     rm -rf /var/lib/apt/lists/*
 
 # ----------------------------------------
-# Install uv
+# Agent installations handled at runtime:
+# - Claude Code: /etc/workstation-startup.d/300_workstation-customization.sh
+# - Goose: /etc/workstation-startup.d/300_workstation-customization.sh
+# - uv: /etc/workstation-startup.d/300_workstation-customization.sh
+# - Gemini CLI: Should be included in base image
 # ----------------------------------------
-# The installer requires curl (and certificates) to download the release archive
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
-
-# Following is handled in /etc/workstation-startup.d/300_workstation-customization.sh
-# Download the latest installer
-# ADD https://astral.sh/uv/install.sh /uv-installer.sh
-
-# Run the installer then remove it
-# RUN sh /uv-installer.sh && rm /uv-installer.sh
-
-# Ensure the installed binary is on the `PATH`
-# ENV PATH="/root/.local/bin/:$PATH"
-# RUN chmod -R +x /root/.local/bin
-
-# ----------------------------------------
-# Copy Workstation Customization script
-# ----------------------------------------
-COPY ./assets/etc/workstation-startup.d/300_workstation-customization.sh /etc/workstation-startup.d/300_workstation-customization.sh
-RUN chmod +x /etc/workstation-startup.d/300_workstation-customization.sh
-
-COPY ./assets/etc/workstation-startup.d/110_start-vscode.sh /etc/workstation-startup.d/110_start-vscode.sh
-RUN chmod +x /etc/workstation-startup.d/110_start-vscode.sh
 
 # ----------------------------------------
 # Configure User Adding Overrides for Default Auth Behavior
 # ----------------------------------------
-RUN rm -f /etc/profile.d/disable_gcloud_gce_check.sh && \
-  apt-get update && \
-  apt-get install -y inotify-tools && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/*
+RUN rm -f /etc/profile.d/disable_gcloud_gce_check.sh
 
-COPY ./assets/etc/workstation-startup.d/010_add-user.sh /etc/workstation-startup.d/010_add-user.sh
-RUN chmod +x /etc/workstation-startup.d/010_add-user.sh
-
-COPY ./assets/etc/workstation-startup.d/011_add-os-login-user.sh /etc/workstation-startup.d/011_add-os-login-user.sh
-RUN chmod +x /etc/workstation-startup.d/011_add-os-login-user.sh
-
-COPY ./assets/etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh /etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh
-RUN chmod +x /etc/workstation-startup.d/015_config_gcloud_metadata_creds_check.sh
-
+# ----------------------------------------
+# Runtime customization scripts
+# ----------------------------------------
+COPY ./assets/etc/workstation-startup.d/ /etc/workstation-startup.d/
+RUN chmod +x /etc/workstation-startup.d/*

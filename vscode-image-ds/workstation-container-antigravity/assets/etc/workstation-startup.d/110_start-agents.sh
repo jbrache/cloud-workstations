@@ -1,6 +1,6 @@
 #!/bin/bash
-
-# Copyright 2024 Google LLC
+#
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,28 +24,32 @@ echo "Starting Remote Desktop agents"
 
 DEFAULT_USER="user"
 
+# ----------------------------------------
+# Determine Username
+# ----------------------------------------
+
 # Check if the environment variable is set and not empty
-if [ -n "${OSLOGIN_USER}" ]; then
-  # Use the value of the environment variable
-  username=$(echo "$OSLOGIN_USER" | sed 's/[@.]/_/g')
-  echo "Attempting to use username derived from 'OSLOGIN_USER': '${username}'"
-  # Check if the user already exists
-  if id -u "${username}" &>/dev/null; then
-    echo "User '${username}' exists."
-  else
-    echo "User '${username}' derived from 'OSLOGIN_USER' does not exist."
-    echo "Falling back to default user: '${DEFAULT_USER}'."
-    username="$DEFAULT_USER"
-  fi
+if [ -n "${OSLOGIN_USER:-}" ]; then
+    # Use the value of the environment variable
+    username=$(echo "$OSLOGIN_USER" | sed 's/[@.]/_/g')
+    echo "Attempting to use username derived from 'OSLOGIN_USER': '${username}'"
+    # Check if the user already exists
+    if id -u "${username}" &>/dev/null; then
+        echo "User '${username}' exists."
+    else
+        echo "User '${username}' derived from 'OSLOGIN_USER' does not exist."
+        echo "Falling back to default user: '${DEFAULT_USER}'."
+        username="$DEFAULT_USER"
+    fi
 else
-  # Use the default username
-  username="$DEFAULT_USER"
-  echo "Environment variable 'OSLOGIN_USER' is not set or is empty. Using default username '${username}'."
+    # Use the default username
+    username="$DEFAULT_USER"
+    echo "Environment variable 'OSLOGIN_USER' is not set or is empty. Using default username '${username}'."
 fi
 
 # --- 1. Variables ---
 TARGET_USER="$username"
-echo "Environment variable 'TARGET_USER' is set to '${TARGET_USER}"
+echo "Environment variable 'TARGET_USER' is set to '${TARGET_USER}'"
 HOME_DIR="/home/$TARGET_USER"
 CONFIG_DIR="$HOME_DIR/.config/chrome-remote-desktop"
 

@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # ----------------------------------------
 # Install System Dependencies and XFCE
 # ----------------------------------------
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb \
     xfce4 \
     xfce4-goodies \
@@ -38,7 +38,7 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearm
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list > /dev/null && \
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] https://dl.google.com/linux/chrome-remote-desktop/deb stable main" | tee /etc/apt/sources.list.d/chrome-remote-desktop.list > /dev/null && \
     apt-get update && \
-    apt-get install -y google-chrome-stable chrome-remote-desktop && \
+    apt-get install -y --no-install-recommends google-chrome-stable chrome-remote-desktop && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -77,22 +77,20 @@ RUN mkdir -p /etc/apt/keyrings && \
 # ----------------------------------------
 # Terraform to manage various kinds of infrastructure
 # ----------------------------------------
-RUN wget -O- https://apt.releases.hashicorp.com/gpg | \
-gpg --dearmor | \
-sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
-echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
-https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
-sudo tee /etc/apt/sources.list.d/hashicorp.list
-RUN sudo apt update && sudo apt install -y zsh gnupg software-properties-common terraform
-RUN apt-get clean
+RUN wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null && \
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends zsh gnupg software-properties-common terraform && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # ----------------------------------------
-# Install zsh
+# Install Oh My Zsh with plugins and theme
 # ----------------------------------------
 ENV ZSH=/opt/workstation/oh-my-zsh
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
-  git clone https://github.com/zsh-users/zsh-autosuggestions /opt/workstation/oh-my-zsh/plugins/zsh-autosuggestions && \
-  git clone --depth=1 https://github.com/romkatv/powerlevel10k.git /opt/workstation/oh-my-zsh/custom/themes/powerlevel10k
+    git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions /opt/workstation/oh-my-zsh/plugins/zsh-autosuggestions && \
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git /opt/workstation/oh-my-zsh/custom/themes/powerlevel10k
 
 # ----------------------------------------
 # [Optional] Install k9s
@@ -153,11 +151,14 @@ RUN apt-get update && \
 # Handled in /etc/workstation-startup.d/300_workstation-customization.sh
 
 # ----------------------------------------
-# Install Goose Dependency
+# Additional CLI Dependencies
 # ----------------------------------------
-RUN sudo apt update && sudo apt install -y bzip2 && \
-    apt-get clean
-# Handled in /etc/workstation-startup.d/300_workstation-customization.sh
+# bzip2 for Goose, inotify-tools for file watching
+# Note: curl/ca-certificates should already be in base image
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends bzip2 inotify-tools && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # ----------------------------------------
 # Install Gemini CLI
@@ -169,33 +170,20 @@ RUN sudo apt update && sudo apt install -y bzip2 && \
 # ----------------------------------------
 # RUN apt-get update && apt-get install -y --no-install-recommends pipx && \
 #     pipx ensurepath && \
-#     apt-get clean
+#     apt-get clean && \
+#     rm -rf /var/lib/apt/lists/*
 
 # ----------------------------------------
-# Install uv
+# Agent installations handled at runtime:
+# - Claude Code: /etc/workstation-startup.d/300_workstation-customization.sh
+# - Goose: /etc/workstation-startup.d/300_workstation-customization.sh
+# - uv: /etc/workstation-startup.d/300_workstation-customization.sh
 # ----------------------------------------
-# The installer requires curl (and certificates) to download the release archive
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
-
-# Following is handled in /etc/workstation-startup.d/300_workstation-customization.sh
-# Download the latest installer
-# ADD https://astral.sh/uv/install.sh /uv-installer.sh
-
-# Run the installer then remove it
-# RUN sh /uv-installer.sh && rm /uv-installer.sh
-
-# Ensure the installed binary is on the `PATH`
-# ENV PATH="/root/.local/bin/:$PATH"
-# RUN chmod -R +x /root/.local/bin
 
 # ----------------------------------------
 # Configure User Adding Overrides for Default Auth Behavior
 # ----------------------------------------
-RUN rm -f /etc/profile.d/disable_gcloud_gce_check.sh && \
-  apt-get update && \
-  apt-get install -y inotify-tools && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/*
+RUN rm -f /etc/profile.d/disable_gcloud_gce_check.sh
 
 # ----------------------------------------
 # Runtime customization scripts

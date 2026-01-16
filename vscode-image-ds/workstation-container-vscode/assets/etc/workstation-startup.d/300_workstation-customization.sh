@@ -1,6 +1,6 @@
 #!/bin/bash
-
-# Copyright 2024 Google LLC
+#
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,53 +14,90 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Exit on error, undefined variable, and pipe failures
+set -euo pipefail
+
 DEFAULT_USER="user"
 
+# ----------------------------------------
+# Helper Functions
+# ----------------------------------------
+
+# Install a CLI tool using a remote installer script
+# Usage: install_cli_tool <name> <binary_path> <install_command>
+install_cli_tool() {
+    local name="$1"
+    local expected_bin="$2"
+    local install_cmd="$3"
+
+    echo "Checking for ${name} installation..."
+
+    if [ ! -f "$expected_bin" ]; then
+        echo "${name} not found at ${expected_bin}. Starting installation..."
+        if eval "$install_cmd"; then
+            echo "Successfully installed ${name}"
+        else
+            echo "Warning: ${name} installation failed. Continuing..."
+            return 1
+        fi
+    else
+        echo "${name} is already installed at ${expected_bin}. Skipping installation."
+    fi
+    return 0
+}
+
+# ----------------------------------------
+# Determine Username
+# ----------------------------------------
+
 # Check if the environment variable is set and not empty
-if [ -n "${OSLOGIN_USER}" ]; then
-  # Use the value of the environment variable
-  username=$(echo "$OSLOGIN_USER" | sed 's/[@.]/_/g')
-  echo "Attempting to use username derived from 'OSLOGIN_USER': '${username}'"
-  # Check if the user already exists
-  if id -u "${username}" &>/dev/null; then
-    echo "User '${username}' exists."
-  else
-    echo "User '${username}' derived from 'OSLOGIN_USER' does not exist."
-    echo "Falling back to default user: '${DEFAULT_USER}'."
-    username="$DEFAULT_USER"
-  fi
+if [ -n "${OSLOGIN_USER:-}" ]; then
+    # Use the value of the environment variable
+    username=$(echo "$OSLOGIN_USER" | sed 's/[@.]/_/g')
+    echo "Attempting to use username derived from 'OSLOGIN_USER': '${username}'"
+    # Check if the user already exists
+    if id -u "${username}" &>/dev/null; then
+        echo "User '${username}' exists."
+    else
+        echo "User '${username}' derived from 'OSLOGIN_USER' does not exist."
+        echo "Falling back to default user: '${DEFAULT_USER}'."
+        username="$DEFAULT_USER"
+    fi
 else
-  # Use the default username
-  username="$DEFAULT_USER"
-  echo "Environment variable 'OSLOGIN_USER' is not set or is empty. Using default username '${username}'."
+    # Use the default username
+    username="$DEFAULT_USER"
+    echo "Environment variable 'OSLOGIN_USER' is not set or is empty. Using default username '${username}'."
 fi
 
-# ----------------------------------------
-# VS Code
-# ----------------------------------------
-VSCODE_PATH="/home/${username}/.vscode-server"
-SETTINGS_PATH="$VSCODE_PATH/data/Machine"
+TARGET_HOME="/home/${username}"
 
-mkdir -p $SETTINGS_PATH
-cat << EOF > $SETTINGS_PATH/settings.json
+# ----------------------------------------
+# VS Code Settings
+# ----------------------------------------
+VSCODE_PATH="${TARGET_HOME}/.vscode-server"
+SETTINGS_PATH="${VSCODE_PATH}/data/Machine"
+
+mkdir -p "$SETTINGS_PATH"
+cat << EOF > "$SETTINGS_PATH/settings.json"
 {
     "workbench.colorTheme": "Default Dark+",
-    "terminal.integrated.defaultProfile.linux": "zsh",
+    "window.openFoldersInNewWindow": "off",
+    "terminal.integrated.defaultProfile.linux": "zsh"
 }
 EOF
 
-chown -R $username:$username $VSCODE_PATH
-chmod -R 755 $VSCODE_PATH
+chown -R "${username}:${username}" "$VSCODE_PATH"
+chmod -R 755 "$VSCODE_PATH"
 
 # ----------------------------------------
-# Oh My zsh
+# Oh My Zsh Configuration
 # ----------------------------------------
 export ZSH=/opt/workstation/oh-my-zsh
 
-if [ -f "/home/${username}/.zshrc" ]; then
+if [ -f "${TARGET_HOME}/.zshrc" ]; then
     echo "ZSH already configured"
 else
-    cat << 'EOF' > /home/${username}/.zshrc
+    cat << 'EOF' > "${TARGET_HOME}/.zshrc"
 export PATH="/opt/workstation/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -108,27 +145,23 @@ POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status virtualenv)
 
 alias tf='terraform'
 alias kc='kubectl'
-alias code='code-oss-cloud-workstations'
+# alias code='code-oss-cloud-workstations'
 
 source "$ZSH/oh-my-zsh.sh"
 EOF
-chsh -s $(which zsh) ${username}
+    chsh -s "$(which zsh)" "${username}"
 fi
 
-zsh -c "source  $ZSH/oh-my-zsh.sh"
-
-chown -R ${username}:${username} /home/${username}
-# chown -R ${username}:${username} /opt/workstation
-# chmod -R 755 /opt/workstation
-chown -R ${username}:${username} /opt
-chmod -R 755 /opt
+# Set workstation directory ownership
+chown -R "${username}:${username}" /opt/workstation
+chmod -R 755 /opt/workstation
 
 # ----------------------------------------
-# CLI Tools
+# CLI Tools Installation
 # ----------------------------------------
-TARGET_HOME="/home/${username}"
+
 # Ensure the standard local bin directory exists
-mkdir -p "$TARGET_HOME/.local/bin"
+mkdir -p "${TARGET_HOME}/.local/bin"
 
 # ----------------------------------------
 # [Skip] Node: Should be installed in base image
@@ -137,114 +170,61 @@ mkdir -p "$TARGET_HOME/.local/bin"
 # ----------------------------------------
 # [Optional] Chrome Remote Desktop & Chrome
 # ----------------------------------------
-# Chrome Remote Desktop
-# wget https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb
-
-# Chrome
-# wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+# Need to add
 
 # ----------------------------------------
-# uv
+# Install CLI Tools using helper function
 # ----------------------------------------
-EXPECTED_BIN="$TARGET_HOME/.local/bin/uv"
 
-echo "Checking for uv installation..."
+# uv - Python package manager
+install_cli_tool "uv" \
+    "${TARGET_HOME}/.local/bin/uv" \
+    "curl -LsSf https://astral.sh/uv/install.sh | HOME='${TARGET_HOME}' sh" || true
 
-# 1. Condition: Only run if the binary does NOT exist
-if [ ! -f "$EXPECTED_BIN" ]; then
-    echo "uv not found at $EXPECTED_BIN. Starting installation..."
+# Claude Code
+install_cli_tool "Claude" \
+    "${TARGET_HOME}/.local/bin/claude" \
+    "curl -fsSL https://claude.ai/install.sh | HOME='${TARGET_HOME}' bash" || true
 
-    # 2. Execute the installer with the hijacked HOME variable
-    # We use 'env' to ensure the variable is exported correctly to the subshell
-    if curl -LsSf https://astral.sh/uv/install.sh | HOME="$TARGET_HOME" sh; then
-        echo "Successfully installed uv to $TARGET_HOME"
-    else
-        echo "Error: Installation script failed."
-        exit 1
-    fi
-else
-    echo "uv is already installed at $EXPECTED_BIN. Skipping installation."
-fi
-
-# ----------------------------------------
-# Claude
-# ----------------------------------------
-EXPECTED_BIN="$TARGET_HOME/.local/bin/claude"
-
-echo "Checking for Claude installation..."
-
-# 1. Condition: Only run if the binary does NOT exist
-if [ ! -f "$EXPECTED_BIN" ]; then
-    echo "Claude not found at $EXPECTED_BIN. Starting installation..."
-
-    # 2. Execute the installer with the hijacked HOME variable
-    # We use 'env' to ensure the variable is exported correctly to the subshell
-    if curl -fsSL https://claude.ai/install.sh | HOME="$TARGET_HOME" bash; then
-        echo "Successfully installed Claude to $TARGET_HOME"
-
-    else
-        echo "Error: Installation script failed."
-        exit 1
-    fi
-else
-    echo "Claude is already installed at $EXPECTED_BIN. Skipping installation."
-fi
-
-# ----------------------------------------
 # Goose
-# ----------------------------------------
-EXPECTED_BIN="$TARGET_HOME/.local/bin/goose"
-
-echo "Checking for Goose installation..."
-
-# 1. Condition: Only run if the binary does NOT exist
-if [ ! -f "$EXPECTED_BIN" ]; then
-    echo "Goose not found at $EXPECTED_BIN. Starting installation..."
-
-    # 2. Execute the installer with the hijacked HOME variable
-    # We use 'env' to ensure the variable is exported correctly to the subshell
-    if curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | CONFIGURE=false HOME="$TARGET_HOME" bash; then
-        echo "Successfully installed Goose to $TARGET_HOME"
-    else
-        echo "Error: Installation script failed."
-        exit 1
-    fi
-else
-    echo "Goose is already installed at $EXPECTED_BIN. Skipping installation."
-fi
+install_cli_tool "Goose" \
+    "${TARGET_HOME}/.local/bin/goose" \
+    "curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | CONFIGURE=false HOME='${TARGET_HOME}' bash" || true
 
 # ----------------------------------------
-# Final Path Verification & Permissions
+# Final Permissions
 # ----------------------------------------
-# Use -d to check if the directory exists
-if [ -d "/home/${username}/.local/bin" ]; then
-    # Make sure all binaries inside the directory are executable
-    chmod -R +x "/home/${username}/.local/bin"
+
+# Make all binaries in .local/bin executable
+if [ -d "${TARGET_HOME}/.local/bin" ]; then
+    chmod -R +x "${TARGET_HOME}/.local/bin"
     
-    # 1. Update PATH for the CURRENT script session (Note: NO SPACES)
-    export PATH="/home/${username}/.local/bin:$PATH"
-    # Check if the path is in the current session's PATH
-    if [[ ":$PATH:" != *":/home/${username}/.local/bin:"* ]]; then
-        echo "Tip: Add '/home/${username}/.local/bin' to your PATH to run installed CLI tools from anywhere."
+    # Inform user about PATH
+    if [[ ":$PATH:" != *":${TARGET_HOME}/.local/bin:"* ]]; then
+        echo "Tip: Add '${TARGET_HOME}/.local/bin' to your PATH to run installed CLI tools from anywhere."
     fi
 fi
 
 # Secure SSH directory if it exists
-if [ -d "/home/${username}/.ssh" ]; then
-    chmod 700 /home/${username}/.ssh
-    chmod 600 /home/${username}/.ssh/*
+if [ -d "${TARGET_HOME}/.ssh" ]; then
+    chmod 700 "${TARGET_HOME}/.ssh"
+    # Only change permissions on files if they exist
+    find "${TARGET_HOME}/.ssh" -type f -exec chmod 600 {} \; 2>/dev/null || true
 fi
 
-chown -R ${username}:${username} /home/${username}
+# Final ownership fix for user home directory
+chown -R "${username}:${username}" "${TARGET_HOME}"
 
 # ----------------------------------------
 # MCP Server Registration
 # ----------------------------------------
-# Run the MCP addition as the specific user
-# Define the absolute path to the binary
-CLAUDE_BIN="/home/${username}/.local/bin/claude"
+CLAUDE_BIN="${TARGET_HOME}/.local/bin/claude"
 
-sudo -u "${username}" bash -c "${CLAUDE_BIN} mcp add adk-docs --scope user --transport stdio -- uvx --from mcpdoc mcpdoc --urls AgentDevelopmentKit:https://google.github.io/adk-docs/llms.txt --transport stdio"
-# claude mcp add --transport http paypal https://mcp.paypal.com/mcp
-# claude mcp add --transport sse square https://mcp.squareup.com/sse
-# claude mcp add --transport http stripe https://mcp.stripe.com
+if [ -f "$CLAUDE_BIN" ]; then
+    sudo -u "${username}" bash -c "${CLAUDE_BIN} mcp add adk-docs --scope user --transport stdio -- uvx --from mcpdoc mcpdoc --urls AgentDevelopmentKit:https://google.github.io/adk-docs/llms.txt --transport stdio" || true
+    # claude mcp add --transport http paypal https://mcp.paypal.com/mcp
+    # claude mcp add --transport sse square https://mcp.squareup.com/sse
+    # claude mcp add --transport http stripe https://mcp.stripe.com
+fi
+
+echo "Workstation customization complete."
