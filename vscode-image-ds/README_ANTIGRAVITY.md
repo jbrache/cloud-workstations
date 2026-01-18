@@ -1,7 +1,13 @@
 # **Optional**: Antigravity Steps if Enabled
 
 **Huge Kudos to [Daniel Strebel](https://www.linkedin.com/in/danistrebel)** with the excelent steps and details: [Using Chrome Remote Desktop to run Antigravity on a Cloud Workstation (or just in a Container)](https://medium.com/google-cloud/using-chrome-remote-desktop-to-run-antigravity-on-a-cloud-workstation-or-just-in-a-container-d00296425a0f)
+* Other Resources
+  * [Running Antigravity on a browser tab](https://medium.com/google-cloud/running-antigravity-on-a-browser-tab-6298bb7e47c4)
 
+Note the multiple `workstation-container-antigravity-v*` folders.
+* `workstation-container-antigravity-v1` - Method used: [Using Chrome Remote Desktop to run Antigravity on a Cloud Workstation (or just in a Container)](https://medium.com/google-cloud/using-chrome-remote-desktop-to-run-antigravity-on-a-cloud-workstation-or-just-in-a-container-d00296425a0f)
+* `workstation-container-antigravity-v2` - Method used: [Running Antigravity on a browser tab](https://medium.com/google-cloud/running-antigravity-on-a-browser-tab-6298bb7e47c4)
+  
 In the workstations section of the Google Cloud Console you should now see the workstation you just created:
 [image]
 

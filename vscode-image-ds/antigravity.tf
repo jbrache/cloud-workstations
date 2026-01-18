@@ -29,7 +29,7 @@ resource "null_resource" "build_antigravity_container_image" {
   count = var.enable_antigravity_workstation ? 1 : 0
 
   provisioner "local-exec" {
-    command     = "gcloud builds submit workstation-container-antigravity --tag='${local.antigravity_container_image}:${local.container_image_tag}' --project ${var.project_id}"
+    command     = "gcloud builds submit ${local.antigravity_folder_selection} --tag='${local.antigravity_container_image}:${local.container_image_tag}' --project ${var.project_id}"
     working_dir = path.module
   }
 
@@ -149,7 +149,7 @@ resource "google_cloudbuild_trigger" "antigravity_container_image" {
   }
 
   git_file_source {
-    path      = "vscode-image-ds/workstation-container-antigravity/cloudbuild.yaml"
+    path      = "vscode-image-ds/${local.antigravity_folder_selection}/cloudbuild.yaml"
     uri       = "https://github.com/${var.github_repo_owner}/${var.github_repo_name}"
     revision  = "refs/heads/main"
     repo_type = "GITHUB"
@@ -160,7 +160,7 @@ resource "google_cloudbuild_trigger" "antigravity_container_image" {
     _AR_REPO_NAME  = var.artifact_repo_name
     _AR_IMAGE_NAME = var.antigravity_artifact_image_name
     _TAG           = local.container_image_tag
-    _IMAGE_DIR     = "vscode-image-ds/workstation-container-antigravity"
+    _IMAGE_DIR     = "vscode-image-ds/${local.antigravity_folder_selection}"
   }
 
   depends_on = [
