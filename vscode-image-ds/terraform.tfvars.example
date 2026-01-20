@@ -57,6 +57,25 @@ developers_name = [
 # Name of the container image in Artifact Registry
 # artifact_image_name = "workstations-vscode"
 
+# ============================================
+# ANTIGRAVITY IDE CONFIGURATION (optional)
+# ============================================
+# Enable Antigravity IDE workstations in addition to VS Code workstations
+
+# Enable creation of Antigravity IDE workstations
+# enable_antigravity_workstation = false
+
+# Name of the container image for Antigravity IDE in Artifact Registry
+# antigravity_artifact_image_name = "workstations-antigravity"
+
+# Select the folder for Antigravity IDE workstations
+# Options: workstation-container-antigravity-v1, workstation-container-antigravity
+# antigravity_folder_selection = "workstation-container-antigravity-v1"
+
+# ============================================
+# WORKSTATION CLUSTER CONFIGURATION (optional)
+# ============================================
+
 # Name of the workstation cluster
 # workstation_cluster_name = "tf-ws-cluster"
 

@@ -114,6 +114,12 @@ variable "enable_antigravity_workstation" {
   default     = false
 }
 
+variable "antigravity_folder_selection" {
+  description = "Select the folder for Antigravity IDE workstations"
+  type        = string
+  default     = "workstation-container-antigravity-v1"
+}
+
 # -------------------------------------------------------------------
 # Workstation Cluster Configuration
 # -------------------------------------------------------------------

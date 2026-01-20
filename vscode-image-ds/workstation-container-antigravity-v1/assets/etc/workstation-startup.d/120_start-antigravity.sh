@@ -20,9 +20,10 @@
 # container by killing all other processes.
 
 # Having some issues with this so exit out
+echo "Skip starting Antigravity web server with 'serve-web'"
 exit 1
 
-echo "Starting Antigravity"
+echo "Starting Antigravity web server with 'serve-web'"
 
 source /etc/profile.d/go_envs.sh
 

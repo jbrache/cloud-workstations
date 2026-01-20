@@ -36,7 +36,7 @@ locals {
   antigravity_container_image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_repo_name}/${var.antigravity_artifact_image_name}"
 
   # Container build fingerprint for change detection - Antigravity
-  antigravity_folder_selection = "workstation-container-antigravity-v2"
+  antigravity_folder_selection = "${var.antigravity_folder_selection}"
   antigravity_container_folder_path = "${path.module}/${local.antigravity_folder_selection}"
   antigravity_container_folder_fingerprint = md5(join("", [
     for f in fileset(local.antigravity_container_folder_path, "**") : filemd5("${local.antigravity_container_folder_path}/${f}")
