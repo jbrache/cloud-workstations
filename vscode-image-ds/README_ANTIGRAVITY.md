@@ -36,10 +36,11 @@ export USER="jose@jbrache.altostrat.com"
 export USERNAME=$(echo "$USER" | sed 's/[@.]/_/g')
 
 gcloud workstations ssh \
-  --project=$GCP_PROJECT_ID \
-  --cluster=workstation-cluster \
-  --config=antigravity-config \
+  --project=$PROJECT_ID \
+  --cluster=$WORKSTATION_CLUSTER \
+  --config=$WORKSTATION_CONFIG \
   --region=$REGION \
+  --user=$USERNAME \
   antigravity-ws-jose
 ```
 ## Chrome Remote Desktop Connection:
