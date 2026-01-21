@@ -188,5 +188,5 @@ RUN rm -f /etc/profile.d/disable_gcloud_gce_check.sh
 # ----------------------------------------
 # Runtime customization scripts
 # ----------------------------------------
-COPY ./assets/etc/workstation-startup.d/ /etc/workstation-startup.d/
+COPY ./assets/etc/workstation-startup.d/. /etc/workstation-startup.d/
 RUN chmod +x /etc/workstation-startup.d/*
