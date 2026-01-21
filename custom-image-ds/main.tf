@@ -385,7 +385,7 @@ resource "google_cloudbuild_trigger" "container_image" {
   }
 
   git_file_source {
-    path      = "vscode-image-ds/workstation-container-vscode/cloudbuild.yaml"
+    path      = "custom-image-ds/workstation-container-vscode/cloudbuild.yaml"
     uri       = "https://github.com/${var.github_repo_owner}/${var.github_repo_name}"
     revision  = "refs/heads/main"
     repo_type = "GITHUB"
@@ -396,7 +396,7 @@ resource "google_cloudbuild_trigger" "container_image" {
     _AR_REPO_NAME  = var.artifact_repo_name
     _AR_IMAGE_NAME = var.artifact_image_name
     _TAG           = local.container_image_tag
-    _IMAGE_DIR     = "vscode-image-ds/workstation-container-vscode"
+    _IMAGE_DIR     = "custom-image-ds/workstation-container-vscode"
   }
 
   depends_on = [
