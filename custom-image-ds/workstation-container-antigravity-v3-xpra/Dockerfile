@@ -19,7 +19,7 @@
 # Xpra Container
 #######################################################
 
-FROM us-central1-docker.pkg.dev/cloud-workstations-images/predefined/code-oss
+FROM us-central1-docker.pkg.dev/cloud-workstations-images/predefined/base:latest
 
 # Use ARG to avoid apt-get warnings
 ARG DEBIAN_FRONTEND=noninteractive

@@ -15,7 +15,7 @@ RUN git clone --quiet --depth 1 --branch $NOVNC_BRANCH https://github.com/novnc/
 #######################################################
 
 # Main container build
-FROM us-central1-docker.pkg.dev/cloud-workstations-images/predefined/base
+FROM us-central1-docker.pkg.dev/cloud-workstations-images/predefined/base:latest
 
 # Use ARG to avoid apt-get warnings
 ARG DEBIAN_FRONTEND=noninteractive
