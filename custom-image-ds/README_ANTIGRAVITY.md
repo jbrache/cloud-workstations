@@ -7,6 +7,7 @@
 Note the multiple `workstation-container-antigravity-v*` folders.
 * `workstation-container-antigravity-v1` - Method used: [Using Chrome Remote Desktop to run Antigravity on a Cloud Workstation (or just in a Container)](https://medium.com/google-cloud/using-chrome-remote-desktop-to-run-antigravity-on-a-cloud-workstation-or-just-in-a-container-d00296425a0f)
 * `workstation-container-antigravity-v2` - Method used: [Running Antigravity on a browser tab](https://medium.com/google-cloud/running-antigravity-on-a-browser-tab-6298bb7e47c4)
+* `workstation-container-antigravity-v3-xpra` - Method used: [Extending Google Cloud Workstations containers to run any GUI based program](https://medium.com/@roken/extending-google-cloud-workstations-containers-to-run-any-gui-based-program-133d0f905106)
 
 In terraform.tfvars, set `workstation-container-antigravity-v1` as:
 * `workstation-container-antigravity-v1`
