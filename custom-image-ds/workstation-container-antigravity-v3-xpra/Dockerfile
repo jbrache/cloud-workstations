@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 # -----------------------------------------------------
 # Xpra Container
 # -----------------------------------------------------
@@ -74,11 +73,6 @@ RUN apt-get update && apt-get install -y \
     mate-desktop-environment \
     # Core MATE packages
     # mate-desktop-environment-core \
-    # Ayatana indicators (fixes IndicatorAppletComplete error)
-    # ayatana-indicator-application \
-    # ayatana-indicator-datetime \
-    # ayatana-indicator-session \
-    # ayatana-indicator-notifications \
     # Basic X11 utilities
     dbus-x11 \
     procps \
