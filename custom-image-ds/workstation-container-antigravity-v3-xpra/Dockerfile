@@ -74,10 +74,11 @@ RUN apt-get update && apt-get install -y \
     mate-desktop-environment \
     # Core MATE packages
     # mate-desktop-environment-core \
-    # Panel applets (fixes panel loading errors)
-    # brisk-menu \
-    # mate-indicator-applet \
-    # caja \
+    # Ayatana indicators (fixes IndicatorAppletComplete error)
+    # ayatana-indicator-application \
+    # ayatana-indicator-datetime \
+    # ayatana-indicator-session \
+    # ayatana-indicator-notifications \
     # Basic X11 utilities
     dbus-x11 \
     procps \
@@ -88,6 +89,11 @@ RUN apt-get update && apt-get install -y \
 # Set default locale
 RUN echo "LANG=en_US.UTF-8" > /etc/default/locale && \
     locale-gen en_US.UTF-8
+
+# Remove problematic indicator applet (prevents panel loading error)
+# The panel encountered a problem while loading:
+# * IndicatorAppletCompleteFactory::IndicatorAppletComplete
+RUN rm -f /usr/lib/mate-panel/libindicator-applet-complete.so || true
 
 # ----------------------------------------
 # Install Antigravity

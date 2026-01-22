@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-echo "Starting Xpra with xterm..."
+echo "Starting Xpra for GUI..."
 
 # https://medium.com/@roken/extending-google-cloud-workstations-containers-to-run-any-gui-based-program-133d0f905106
 # [ Option 1 ] - xterm
