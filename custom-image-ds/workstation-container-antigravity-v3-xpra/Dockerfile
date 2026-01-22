@@ -15,16 +15,18 @@
 # limitations under the License.
 
 
-#######################################################
+# -----------------------------------------------------
 # Xpra Container
-#######################################################
+# -----------------------------------------------------
 
 FROM us-central1-docker.pkg.dev/cloud-workstations-images/predefined/base:latest
 
 # Use ARG to avoid apt-get warnings
 ARG DEBIAN_FRONTEND=noninteractive
 
+# ----------------------------------------
 # Install Xpra
+# ----------------------------------------
 RUN curl http://xpra.org/gpg.asc > /etc/apt/keyrings/xpra.asc && \
 echo "deb [signed-by=/etc/apt/keyrings/xpra.asc] http://xpra.org/ noble main" > \
   /etc/apt/sources.list.d/xpra.list && \
@@ -39,11 +41,15 @@ echo "deb [signed-by=/etc/apt/keyrings/xpra.asc] http://xpra.org/ noble main" > 
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
-# Install GNOME
+# ----------------------------------------
+# [ Option 2 ] Install GNOME
+# ----------------------------------------
 # RUN apt-get update && apt-get install -y \
 #     gnome-software \
 #     gnome-software-common \
 #     gnome-software-plugin-snap \
+#     gnome-terminal \
+#     gnome-session \
 #     libappstream-glib8 \
 #     libgd3 \
 #     colord \
@@ -60,14 +66,41 @@ echo "deb [signed-by=/etc/apt/keyrings/xpra.asc] http://xpra.org/ noble main" > 
 #   rm -rf /var/lib/apt/lists/* && \
 #   chmod -x /usr/lib/ubuntu-release-upgrader/check-new-release-gtk
 
+# ----------------------------------------
+# [ Option 3 ] Install MATE Desktop
+# ----------------------------------------
+RUN apt-get update && apt-get install -y \
+    # Full MATE
+    mate-desktop-environment \
+    # Core MATE packages
+    # mate-desktop-environment-core \
+    # Panel applets (fixes panel loading errors)
+    # brisk-menu \
+    # mate-indicator-applet \
+    # caja \
+    # Basic X11 utilities
+    dbus-x11 \
+    procps \
+    psmisc && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set default locale
+RUN echo "LANG=en_US.UTF-8" > /etc/default/locale && \
+    locale-gen en_US.UTF-8
+
+# ----------------------------------------
 # Install Antigravity
+# ----------------------------------------
 RUN mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg | gpg --dearmor -o /etc/apt/keyrings/antigravity-repo-key.gpg && \
     echo "deb [signed-by=/etc/apt/keyrings/antigravity-repo-key.gpg] https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/ antigravity-debian main" | tee /etc/apt/sources.list.d/antigravity.list > /dev/null && \
     apt-get update && \
     apt-get install -y antigravity
 
+# ----------------------------------------
 # Install Google Chrome
+# ----------------------------------------
 # RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg && \
 #     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list > /dev/null && \
 #     apt-get update && \
@@ -80,7 +113,9 @@ RUN mkdir -p /etc/apt/keyrings && \
 #     echo 'exec /usr/bin/google-chrome-stable.real --no-sandbox --no-zygote --disable-gpu --disable-dev-shm-usage "$@"' >> /usr/bin/google-chrome-stable && \
 #     chmod +x /usr/bin/google-chrome-stable
 
+# ----------------------------------------
 # Install google-chrome
+# ----------------------------------------
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
   apt-get update && \
   apt install -y ./google-chrome*.deb && \
